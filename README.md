@@ -1,0 +1,3 @@
+# mahj
+
+console mahjong game

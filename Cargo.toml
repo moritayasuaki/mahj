@@ -1,0 +1,6 @@
+[package]
+name = "mahj"
+version = "0.1.0"
+authors = ["Yasuaki MORITA <zousandazou@gmail.com>"]
+
+[dependencies]
