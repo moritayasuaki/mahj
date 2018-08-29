@@ -1,3 +1,5 @@
+#![feature(non_ascii_idents)]
+
 use std::io;
 use std::net;
 use std::thread;
@@ -5,9 +7,27 @@ use std::sync::mpsc;
 
 use io::Write;
 
+
+#[derive(Copy,Clone)]
+struct Flís(u8);
+
+impl Flís {
+    const CHARS: [char; 34] = [
+        '🀀','🀁','🀂','🀃','🀄','🀅','🀆','🀇','🀈','🀉','🀊','🀋','🀌','🀍','🀎','🀏',
+        '🀐','🀑','🀒','🀓','🀔','🀕','🀖','🀗','🀘','🀙','🀚','🀛','🀜','🀝','🀞','🀟',
+        '🀠','🀡'];
+    fn id(&self) -> usize {
+        self.0 as usize
+    }
+    fn to_char(&self) -> char {
+        Self::CHARS[self.id()]
+    }
+}
+
+
 struct Request {
-    thread : u32,
-    req : u32
+    thread: u32,
+    req: u32
 }
 
 fn main() -> io::Result<()> {
@@ -30,5 +50,5 @@ fn main() -> io::Result<()> {
 }
 
 fn sub(mut sock : net::TcpStream, addr : net::SocketAddr, tx: mpsc::Sender<Request>) -> io::Result<()> {
-    writeln!(sock, "hello! {}", addr)
+    writeln!(sock, "hello! {} {}", Flís(1).to_char(), addr)
 }
