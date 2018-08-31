@@ -5,6 +5,8 @@ use std::net;
 use std::thread;
 use std::sync::mpsc;
 use std::ops;
+use std::mem;
+use std::sync;
 
 use io::Write;
 
@@ -39,7 +41,7 @@ impl FlísTýpe {
         '🀀','🀁','🀂','🀃','🀄','🀅','🀆','🀇','🀈','🀉','🀊','🀋','🀌','🀍','🀎','🀏',
         '🀐','🀑','🀒','🀓','🀔','🀕','🀖','🀗','🀘','🀙','🀚','🀛','🀜','🀝','🀞','🀟',
         '🀠','🀡'];
-    const _VEÐUR_BILINU: ops::Range<usize> = 0..4;
+    const _VINDUR_BILINU: ops::Range<usize> = 0..4;
     const _DREKI_BILINU: ops::Range<usize> = 4..7;
     const _HEIÐUR_BILINU: ops::Range<usize> = 0..7;
     const _MYNT_BILINU: ops::Range<usize> = 7..16;
@@ -53,7 +55,7 @@ impl FlísTýpe {
         Self::LETUR[self.auðkenni()]
     }
     pub fn frá_auðkenni(au: usize) -> Self {
-        FlísTýpe((au % Self::NÚMER) as u8)
+        FlísTýpe::frá_auðkenni(au)
     }
     pub fn í_liturtýpe(self) -> LiturTýpe {
         match self.auðkenni() {
@@ -64,16 +66,11 @@ impl FlísTýpe {
         _ => unreachable!()
         }
     }
-    pub fn í_raðtala(self) -> LiturTýpe {
-        match self.auðkenni() {
-        0...6 => LiturTýpe(0),
-        7...15 => LiturTýpe(1),
-        16...24 => LiturTýpe(2),
-        25...33 => LiturTýpe(3),
-        _ => unreachable!()
+    pub fn í_raðtala(self) -> Raðtala {
+        if self.í_liturtýpe().er_heiður() {
+            unreachable!()
         }
-    }
-    pub fn er_veður(self) {
+        Raðtala::frá_auðkenni((self.auðkenni() - 7) / 9)
     }
 }
 
@@ -118,19 +115,19 @@ struct Request {
     req: u32
 }
 
+
 fn main() -> io::Result<()> {
     println!("binding localhost:8080 ...");
     let listener = net::TcpListener::bind("localhost:8080")?;
     let mut handles = Vec::new();
     let (tx, _rx) = mpsc::channel::<Request>();
-    for _ in 0..4 {
+    for i in 0..4 {
         let (mut sock, addr) = listener.accept()?;
         println!("accepted client {} ", addr);
         let tx = tx.clone();
         let handle = thread::spawn(move || sub(sock, addr, tx));
         handles.push(handle);
     }
-
     for handle in handles {
         handle.join();
     }
@@ -138,5 +135,8 @@ fn main() -> io::Result<()> {
 }
 
 fn sub(mut sock : net::TcpStream, addr : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
-    writeln!(sock, "hello! {} {}", FlísTýpe(1).í_letur(), addr)
+    for f in Flís::make_iter() {
+        write!(sock, "{}", f.í_flístýpe().í_letur())?
+    }
+    sock.flush()
 }
