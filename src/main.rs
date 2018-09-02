@@ -115,28 +115,32 @@ struct Request {
     req: u32
 }
 
+type Höndla = Option<thread::JoinHandle<io::Result<()>>>;
 
 fn main() -> io::Result<()> {
     println!("binding localhost:8080 ...");
-    let listener = net::TcpListener::bind("localhost:8080")?;
-    let mut handles = Vec::new();
+    let hlustandi = net::TcpListener::bind("localhost:8080")?;
+    // let mut handles = Vec::new();
+    let mut höndfong: [Höndla; 4] = [None, None, None, None];
     let (tx, _rx) = mpsc::channel::<Request>();
-    for i in 0..4 {
-        let (mut sock, addr) = listener.accept()?;
-        println!("accepted client {} ", addr);
+    for höndla in &mut höndfong {
+        let (mut fals, veffang) = hlustandi.accept()?;
         let tx = tx.clone();
-        let handle = thread::spawn(move || sub(sock, addr, tx));
-        handles.push(handle);
+        println!("accepted client {} ", veffang);
+        *höndla = Some(thread::spawn(move || sub(fals, veffang, tx)));
     }
-    for handle in handles {
-        handle.join();
+    for höndla in &mut höndfong {
+        if let Some(þráður) = höndla.take() {
+            þráður.join();
+        };
     }
     Ok(())
 }
 
 fn sub(mut sock : net::TcpStream, addr : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
+    let mut s = String::new();
     for f in Flís::make_iter() {
-        write!(sock, "{}", f.í_flístýpe().í_letur())?
+        s.push(f.í_flístýpe().í_letur());
     }
-    sock.flush()
+    writeln!(sock, "{}", s)
 }
