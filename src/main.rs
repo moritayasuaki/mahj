@@ -72,6 +72,9 @@ impl FlísTýpe {
         }
         Raðtala::frá_auðkenni((self.auðkenni() - 7) / 9)
     }
+    pub fn make_iter() -> impl Iterator<Item=Self> {
+        (0..Self::NÚMER).map(Self::frá_auðkenni)
+    }
 }
 
 impl LiturTýpe {
@@ -87,6 +90,9 @@ impl LiturTýpe {
     }
     pub fn er_töluorð(self) -> bool {
         !self.er_heiður()
+    }
+    pub fn make_iter() -> impl Iterator<Item=Self> {
+        (0..Self::NÚMER).map(Self::frá_auðkenni)
     }
 }
 
@@ -107,6 +113,9 @@ impl Raðtala {
     }
     pub fn er_einfalt(self) -> bool {
         !self.er_endastöð()
+    }
+    pub fn make_iter() -> impl Iterator<Item=Self> {
+        (0..Self::NÚMER).map(Self::frá_auðkenni)
     }
 }
 
