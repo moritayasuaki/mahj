@@ -8,7 +8,7 @@ use std::ops;
 use std::mem;
 use std::sync;
 
-use io::Write;
+use io::{Write, Read, BufRead};
 
 #[derive(Copy,Clone)]
 struct Flís(u8);
@@ -146,10 +146,15 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn sub(mut sock : net::TcpStream, addr : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
+fn sub(mut fals : net::TcpStream, veffang : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
     let mut s = String::new();
     for f in Flís::make_iter() {
         s.push(f.í_flístýpe().í_letur());
     }
-    writeln!(sock, "{}", s)
+    writeln!(fals, "{}", s)?;
+    let r = io::BufReader::new(fals.try_clone()?);
+    for line in r.lines() {
+        writeln!(fals, "you sent {}", line?)?;
+    }
+    Ok(())
 }
