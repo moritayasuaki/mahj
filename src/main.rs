@@ -126,6 +126,7 @@ struct Request {
 
 type Höndla = Option<thread::JoinHandle<io::Result<()>>>;
 
+
 fn main() -> io::Result<()> {
     println!("binding localhost:8080 ...");
     let hlustandi = net::TcpListener::bind("localhost:8080")?;
@@ -146,6 +147,13 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
+enum Command {
+    Tsumo,
+    Pon,
+    Chow,
+    Discard
+}
+
 fn sub(mut fals : net::TcpStream, veffang : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
     let mut s = String::new();
     for f in Flís::make_iter() {
@@ -154,7 +162,17 @@ fn sub(mut fals : net::TcpStream, veffang : net::SocketAddr, _tx: mpsc::Sender<R
     writeln!(fals, "{}", s)?;
     let r = io::BufReader::new(fals.try_clone()?);
     for line in r.lines() {
-        writeln!(fals, "you sent {}", line?)?;
+        parse_line(&mut fals, &(line?))?;
     }
     Ok(())
+}
+
+fn parse_line(fals: &mut net::TcpStream, line: &str) -> io::Result<()> {
+    let mut tokens = line.split_whitespace();
+    let command = tokens.next().ok_or(io::ErrorKind::Other)?;
+    write!(fals, "command = {}", command)?;
+    for token in tokens {
+        write!(fals, " {}", token)?;
+    }
+    writeln!(fals, "")
 }
