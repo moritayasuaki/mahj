@@ -147,6 +147,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
+#[derive(Debug,Copy,Clone)]
 enum Command {
     Tsumo,
     Pon,
@@ -162,15 +163,25 @@ fn sub(mut fals : net::TcpStream, veffang : net::SocketAddr, _tx: mpsc::Sender<R
     writeln!(fals, "{}", s)?;
     let r = io::BufReader::new(fals.try_clone()?);
     for line in r.lines() {
-        parse_line(&mut fals, &(line?))?;
+        parse_line(&mut fals, &line?)?;
     }
     Ok(())
 }
 
+fn parse_command(s: &str) -> io::Result<Command> {
+    match s {
+    "tsumo" => Ok(Command::Tsumo),
+    "pon" => Ok(Command::Pon),
+    "chow" => Ok(Command::Chow),
+    "discard" => Ok(Command::Discard),
+    _ => Err(io::Error::new(io::ErrorKind::Other, "hey"))
+    }
+}
 fn parse_line(fals: &mut net::TcpStream, line: &str) -> io::Result<()> {
     let mut tokens = line.split_whitespace();
-    let command = tokens.next().ok_or(io::ErrorKind::Other)?;
-    write!(fals, "command = {}", command)?;
+    let token = tokens.next().ok_or(io::ErrorKind::Other)?;
+    let command: Command = parse_command(token)?;
+    write!(fals, "command = {:?}", command)?;
     for token in tokens {
         write!(fals, " {}", token)?;
     }
