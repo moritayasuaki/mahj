@@ -7,16 +7,18 @@ use std::sync::mpsc;
 use std::ops;
 use std::mem;
 use std::sync;
+use std::fmt;
+use std::iter;
 
 use io::{Write, Read, BufRead};
 
-#[derive(Copy,Clone)]
+#[derive(Debug,Copy,Clone)]
 struct Flís(u8);
-#[derive(Copy,Clone)]
+#[derive(Debug,Copy,Clone)]
 struct FlísTýpe(u8);
-#[derive(Copy,Clone)]
+#[derive(Debug,Copy,Clone)]
 struct LiturTýpe(u8);
-#[derive(Copy,Clone)]
+#[derive(Debug,Copy,Clone)]
 struct Raðtala(u8);
 
 impl Flís {
@@ -54,15 +56,23 @@ impl FlísTýpe {
     pub fn í_letur(self) -> char {
         Self::LETUR[self.auðkenni()]
     }
+    pub fn frá_letur(letur: char) -> Option<Self> {
+        for i in 0..Self::NÚMER {
+            if (Self::LETUR[i] == letur) {
+                return Some(Self::frá_auðkenni(i));
+            }
+        }
+        None
+    }
     pub fn frá_auðkenni(au: usize) -> Self {
         FlísTýpe::frá_auðkenni(au)
     }
     pub fn í_liturtýpe(self) -> LiturTýpe {
         match self.auðkenni() {
-        0...6 => LiturTýpe(0),
-        7...15 => LiturTýpe(1),
-        16...24 => LiturTýpe(2),
-        25...33 => LiturTýpe(3),
+        0..=6 => LiturTýpe(0),
+        7..=15 => LiturTýpe(1),
+        16..=24 => LiturTýpe(2),
+        25..=33 => LiturTýpe(3),
         _ => unreachable!()
         }
     }
@@ -147,12 +157,12 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug,Clone)]
 enum Command {
     Tsumo,
-    Pon,
-    Chow,
-    Discard
+    Pung(Vec<FlísTýpe>),
+    Chow(Vec<FlísTýpe>),
+    Discard(FlísTýpe)
 }
 
 fn sub(mut fals : net::TcpStream, veffang : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
@@ -168,22 +178,49 @@ fn sub(mut fals : net::TcpStream, veffang : net::SocketAddr, _tx: mpsc::Sender<R
     Ok(())
 }
 
-fn parse_command(s: &str) -> io::Result<Command> {
-    match s {
-    "tsumo" => Ok(Command::Tsumo),
-    "pon" => Ok(Command::Pon),
-    "chow" => Ok(Command::Chow),
-    "discard" => Ok(Command::Discard),
-    _ => Err(io::Error::new(io::ErrorKind::Other, "hey"))
-    }
+fn flísar_í_pung(flísar : Vec<FlísTýpe>) -> io::Result<Vec<FlísTýpe>> {
+    Ok((flísar)) // todo
 }
-fn parse_line(fals: &mut net::TcpStream, line: &str) -> io::Result<()> {
-    let mut tokens = line.split_whitespace();
-    let token = tokens.next().ok_or(io::ErrorKind::Other)?;
-    let command: Command = parse_command(token)?;
-    write!(fals, "command = {:?}", command)?;
-    for token in tokens {
-        write!(fals, " {}", token)?;
+fn flísar_í_chow(flísar : Vec<FlísTýpe>) -> io::Result<Vec<FlísTýpe>> {
+    Ok((flísar)) // todo
+}
+fn parse_command<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+    fn parse_flís(letúr: char) -> io::Result<FlísTýpe> {
+        FlísTýpe::frá_letur(letúr).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
     }
-    writeln!(fals, "")
+    fn parse_flísar<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Vec<FlísTýpe>> {
+        let flísar = tokens.next().ok_or(io::ErrorKind::Other)?;
+        flísar.chars().map(parse_flís).collect()
+    }
+    fn parse_pung_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+        let flísar = parse_flísar(tokens)?;
+        flísar_í_pung(flísar).and_then(|c| Ok(Command::Pung(c)))
+    }
+    fn parse_chow_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+        let flísar = parse_flísar(tokens)?;
+        flísar_í_chow(flísar).and_then(|c| Ok(Command::Pung(c)))
+    }
+    fn parse_discard_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+        let flísar = parse_flísar(tokens)?;
+        if flísar.len() == 1 {
+            Ok(Command::Discard(flísar[0]))
+        } else {
+            Err(io::Error::new(io::ErrorKind::Other, "no such command"))
+        }
+    }
+    let command = tokens.next().ok_or(io::ErrorKind::Other)?;
+    match command.as_ref() {
+    "tsumo" => Ok(Command::Tsumo),
+    "pung" => parse_pung_arg(tokens),
+    "chow" => parse_chow_arg(tokens),
+    "discard" => parse_discard_arg(tokens),
+    _ => Err(io::Error::new(io::ErrorKind::Other, "no such command"))
+    }
+
+}
+
+fn parse_line(fals: &mut net::TcpStream, line: &str) -> io::Result<()> {
+    let mut words = line.split_whitespace();
+    let command: Command = parse_command(words)?;
+    writeln!(fals, "{:?}", command)
 }
