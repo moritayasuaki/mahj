@@ -12,14 +12,23 @@ use std::iter;
 
 use io::{Write, Read, BufRead};
 
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
 struct Flís(u8);
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
 struct FlísTýpe(u8);
-#[derive(Debug,Copy,Clone)]
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
 struct LiturTýpe(u8);
-#[derive(Debug,Copy,Clone)]
-struct Raðtala(u8);
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+struct Metorð(u8);
+
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+struct Vald_Metorð(u32);
+
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+struct Vald_Litur(u16);
+
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+struct Vald_Litur_Metorð([u32; 4]);
 
 impl Flís {
     const NÚMER: usize = 136;
@@ -40,15 +49,17 @@ impl Flís {
 impl FlísTýpe {
     const NÚMER: usize = 34;
     const LETUR: [char; Self::NÚMER] = [
-        '🀀','🀁','🀂','🀃','🀄','🀅','🀆','🀇','🀈','🀉','🀊','🀋','🀌','🀍','🀎','🀏',
-        '🀐','🀑','🀒','🀓','🀔','🀕','🀖','🀗','🀘','🀙','🀚','🀛','🀜','🀝','🀞','🀟',
-        '🀠','🀡'];
-    const _VINDUR_BILINU: ops::Range<usize> = 0..4;
-    const _DREKI_BILINU: ops::Range<usize> = 4..7;
-    const _HEIÐUR_BILINU: ops::Range<usize> = 0..7;
-    const _MYNT_BILINU: ops::Range<usize> = 7..16;
-    const _BAMBUS_BILINU: ops::Range<usize> = 16..25;
-    const _HRINGUR_BILINU: ops::Range<usize> = 25..34;
+        '🀇','🀈','🀉','🀊','🀋','🀌','🀍','🀎','🀏',
+        '🀐','🀑','🀒','🀓','🀔','🀕','🀖','🀗','🀘',
+        '🀙','🀚','🀛','🀜','🀝','🀞','🀟','🀠','🀡',
+        '🀀','🀁','🀂','🀃',
+        '🀄','🀅','🀆'];
+    const _MYNT_BILINU: ops::Range<usize> = 0..9;
+    const _BAMBUS_BILINU: ops::Range<usize> = 9..18;
+    const _HRINGUR_BILINU: ops::Range<usize> = 18..27;
+    const _VINDUR_BILINU: ops::Range<usize> = 27..31;
+    const _DREKI_BILINU: ops::Range<usize> = 31..34;
+    const _HEIÐUR_BILINU: ops::Range<usize> = 27..34;
 
     pub fn auðkenni(self) -> usize {
         self.0 as usize
@@ -68,19 +79,10 @@ impl FlísTýpe {
         FlísTýpe::frá_auðkenni(au)
     }
     pub fn í_liturtýpe(self) -> LiturTýpe {
-        match self.auðkenni() {
-        0..=6 => LiturTýpe(0),
-        7..=15 => LiturTýpe(1),
-        16..=24 => LiturTýpe(2),
-        25..=33 => LiturTýpe(3),
-        _ => unreachable!()
-        }
+        LiturTýpe::frá_auðkenni(self.auðkenni() / 9)
     }
-    pub fn í_raðtala(self) -> Raðtala {
-        if self.í_liturtýpe().er_heiður() {
-            unreachable!()
-        }
-        Raðtala::frá_auðkenni((self.auðkenni() - 7) / 9)
+    pub fn í_raðtala(self) -> Metorð {
+        Metorð::frá_auðkenni(self.auðkenni() % 9)
     }
     pub fn make_iter() -> impl Iterator<Item=Self> {
         (0..Self::NÚMER).map(Self::frá_auðkenni)
@@ -95,24 +97,24 @@ impl LiturTýpe {
     pub fn frá_auðkenni(au: usize) -> Self {
         LiturTýpe((au % Self::NÚMER) as u8)
     }
-    pub fn er_heiður(self) -> bool {
-        self.0 == 0
-    }
     pub fn er_töluorð(self) -> bool {
-        !self.er_heiður()
+        self.0 < 3
+    }
+    pub fn er_heiður(self) -> bool {
+        !self.er_töluorð()
     }
     pub fn make_iter() -> impl Iterator<Item=Self> {
         (0..Self::NÚMER).map(Self::frá_auðkenni)
     }
 }
 
-impl Raðtala {
+impl Metorð {
     const NÚMER: usize = 9;
     pub fn auðkenni(self) -> usize {
         self.0 as usize
     }
     pub fn frá_auðkenni(au: usize) -> Self {
-        Raðtala((au % Self::NÚMER) as u8)
+        Metorð((au % Self::NÚMER) as u8)
     }
     pub fn er_endastöð(self) -> bool {
         match self.auðkenni() {
@@ -126,6 +128,26 @@ impl Raðtala {
     }
     pub fn make_iter() -> impl Iterator<Item=Self> {
         (0..Self::NÚMER).map(Self::frá_auðkenni)
+    }
+}
+
+impl Vald_Metorð {
+    pub fn frá_ítreki(metorð: impl Iterator<Item=Metorð>) -> Self {
+        let mut m = 0;
+        for metorði in metorð {
+            m += 1 << metorði.auðkenni()
+        }
+        Vald_Metorð(m)
+    }
+}
+
+impl Vald_Litur {
+    pub fn frá_ítrek(litir: impl Iterator<Item=LiturTýpe>) -> Self {
+        let mut l = 0;
+        for litur in litir {
+            l += 1 << litur.auðkenni()
+        }
+        Vald_Litur(l)
     }
 }
 
@@ -160,9 +182,12 @@ fn main() -> io::Result<()> {
 #[derive(Debug,Clone)]
 enum Command {
     Tsumo,
-    Pung(Vec<FlísTýpe>),
-    Chow(Vec<FlísTýpe>),
-    Discard(FlísTýpe)
+    Kong(FlísTýpe),
+    Pung(FlísTýpe),
+    Chow(FlísTýpe),
+    Call(FlísTýpe),
+    Discard(FlísTýpe),
+    Mahjoong(FlísTýpe)
 }
 
 fn sub(mut fals : net::TcpStream, veffang : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
@@ -178,11 +203,31 @@ fn sub(mut fals : net::TcpStream, veffang : net::SocketAddr, _tx: mpsc::Sender<R
     Ok(())
 }
 
-fn flísar_í_pung(flísar : Vec<FlísTýpe>) -> io::Result<Vec<FlísTýpe>> {
-    Ok((flísar)) // todo
+fn reyna_flísar_í_pung(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
+    if flísar.len() != 3 {
+        return None
+    }
+    if (flísar[0] != flísar[1]) | (flísar[1] != flísar[2]) {
+        return None
+    }
+    Some(flísar[0])
 }
-fn flísar_í_chow(flísar : Vec<FlísTýpe>) -> io::Result<Vec<FlísTýpe>> {
-    Ok((flísar)) // todo
+
+fn reyna_flísar_í_chow(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
+    if flísar.len() != 3 {
+        return None
+    }
+    let l = flísar[0].í_liturtýpe();
+    if l.er_heiður() {
+        return None
+    }
+    if l.er_heiður() {
+        return None
+    }
+    if (l != flísar[1].í_liturtýpe()) | (l != flísar[2].í_liturtýpe()) {
+        return None
+    }
+    Some(flísar[0]) // todo
 }
 fn parse_command<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     fn parse_flís(letúr: char) -> io::Result<FlísTýpe> {
@@ -194,11 +239,11 @@ fn parse_command<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Comm
     }
     fn parse_pung_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
         let flísar = parse_flísar(tokens)?;
-        flísar_í_pung(flísar).and_then(|c| Ok(Command::Pung(c)))
+        reyna_flísar_í_pung(flísar).map(|c| Command::Pung(c)).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
     }
     fn parse_chow_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
         let flísar = parse_flísar(tokens)?;
-        flísar_í_chow(flísar).and_then(|c| Ok(Command::Pung(c)))
+        reyna_flísar_í_chow(flísar).map(|c| Command::Pung(c)).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
     }
     fn parse_discard_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
         let flísar = parse_flísar(tokens)?;
