@@ -41,7 +41,7 @@ impl Flís {
     pub fn frá_auðkenni(au: usize) -> Self {
         Flís((au % Self::NÚMER) as u8)
     }
-    pub fn make_iter() -> impl Iterator<Item=Self> {
+    pub fn gera_ítreki() -> impl Iterator<Item=Self> {
         (0..Self::NÚMER).map(Self::frá_auðkenni)
     }
 }
@@ -69,7 +69,7 @@ impl FlísTýpe {
     }
     pub fn frá_letur(letur: char) -> Option<Self> {
         for i in 0..Self::NÚMER {
-            if (Self::LETUR[i] == letur) {
+            if Self::LETUR[i] == letur {
                 return Some(Self::frá_auðkenni(i));
             }
         }
@@ -84,7 +84,7 @@ impl FlísTýpe {
     pub fn í_raðtala(self) -> Metorð {
         Metorð::frá_auðkenni(self.auðkenni() % 9)
     }
-    pub fn make_iter() -> impl Iterator<Item=Self> {
+    pub fn gera_ítreki() -> impl Iterator<Item=Self> {
         (0..Self::NÚMER).map(Self::frá_auðkenni)
     }
 }
@@ -103,7 +103,7 @@ impl LiturTýpe {
     pub fn er_heiður(self) -> bool {
         !self.er_töluorð()
     }
-    pub fn make_iter() -> impl Iterator<Item=Self> {
+    pub fn gera_ítreki() -> impl Iterator<Item=Self> {
         (0..Self::NÚMER).map(Self::frá_auðkenni)
     }
 }
@@ -126,7 +126,7 @@ impl Metorð {
     pub fn er_einfalt(self) -> bool {
         !self.er_endastöð()
     }
-    pub fn make_iter() -> impl Iterator<Item=Self> {
+    pub fn gera_ítreki() -> impl Iterator<Item=Self> {
         (0..Self::NÚMER).map(Self::frá_auðkenni)
     }
 }
@@ -192,7 +192,7 @@ enum Command {
 
 fn sub(mut fals : net::TcpStream, veffang : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
     let mut s = String::new();
-    for f in Flís::make_iter() {
+    for f in Flís::gera_ítreki() {
         s.push(f.í_flístýpe().í_letur());
     }
     writeln!(fals, "{}", s)?;
