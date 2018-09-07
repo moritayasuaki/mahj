@@ -81,8 +81,11 @@ impl FlísTýpe {
     pub fn í_liturtýpe(self) -> LiturTýpe {
         LiturTýpe::frá_auðkenni(self.auðkenni() / 9)
     }
-    pub fn í_raðtala(self) -> Metorð {
+    pub fn í_metorð(self) -> Metorð {
         Metorð::frá_auðkenni(self.auðkenni() % 9)
+    }
+    pub fn frá_litur_og_metorð(l: LiturTýpe, m: Metorð) -> Self {
+        Self::frá_auðkenni(l.auðkenni() * 9 + m.auðkenni())
     }
     pub fn gera_ítreki() -> impl Iterator<Item=Self> {
         (0..Self::NÚMER).map(Self::frá_auðkenni)
@@ -132,22 +135,54 @@ impl Metorð {
 }
 
 impl Vald_Metorð {
-    pub fn frá_ítreki(metorð: impl Iterator<Item=Metorð>) -> Self {
+    pub fn frá_ítreki<'a>(metorð: impl Iterator<Item=Metorð>) -> Self {
         let mut m = 0;
         for metorði in metorð {
-            m += 1 << metorði.auðkenni()
+            m += 1 << (3 * metorði.auðkenni())
         }
         Vald_Metorð(m)
+    }
+    pub fn er_tómur(&self) -> bool {
+        self.0 == 0
+    }
+    pub fn ein_tegund(&self) -> Option<Metorð> {
+        if self.er_tómur() {
+            return None;
+        }
+        let p = self.0;
+        let p = p | p >> 1 | p >> 2;
+        let p = p & 0o111111111;
+        if (p & (p-1)) != 0 {
+            return None;
+        }
+        let p = p.trailing_zeros();
+        Some(Metorð::frá_auðkenni(p as usize))
     }
 }
 
 impl Vald_Litur {
-    pub fn frá_ítrek(litir: impl Iterator<Item=LiturTýpe>) -> Self {
+    pub fn frá_ítreki<'a>(litir: impl Iterator<Item=LiturTýpe>) -> Self {
         let mut l = 0;
         for litur in litir {
-            l += 1 << litur.auðkenni()
+            l += 1 << (4 * litur.auðkenni())
         }
         Vald_Litur(l)
+    }
+    pub fn er_tómur(&self) -> bool {
+        self.0 == 0
+    }
+    pub fn ein_tegund(&self) -> Option<LiturTýpe> {
+        if self.er_tómur() {
+            return None;
+        }
+        let p = self.0;
+        let p = p | p >> 1 | p >> 2 | p >> 3;
+        let p = p & 0x1111;
+        if (p & (p-1)) != 0 {
+            return None;
+        }
+        let p = p.trailing_zeros();
+        Some(LiturTýpe::frá_auðkenni(p as usize))
     }
 }
 
@@ -157,7 +192,6 @@ struct Request {
 }
 
 type Höndla = Option<thread::JoinHandle<io::Result<()>>>;
-
 
 fn main() -> io::Result<()> {
     println!("binding localhost:8080 ...");
@@ -174,7 +208,7 @@ fn main() -> io::Result<()> {
     for höndla in &mut höndfong {
         if let Some(þráður) = höndla.take() {
             þráður.join();
-        };
+        }
     }
     Ok(())
 }
@@ -207,10 +241,15 @@ fn reyna_flísar_í_pung(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
     if flísar.len() != 3 {
         return None
     }
-    if (flísar[0] != flísar[1]) | (flísar[1] != flísar[2]) {
-        return None
+    let vald_litur = Vald_Litur::frá_ítreki(flísar.iter().map(|f| f.í_liturtýpe()));
+    let o_litur = vald_litur.ein_tegund();
+    let vald_metorð = Vald_Metorð::frá_ítreki(flísar.iter().map(|f| f.í_metorð()));
+    let o_metorð = vald_metorð.ein_tegund();
+
+    if let (Some(metorð), Some(litur)) = (o_metorð, o_litur) {
+        return Some(FlísTýpe::frá_litur_og_metorð(litur, metorð));
     }
-    Some(flísar[0])
+    None
 }
 
 fn reyna_flísar_í_chow(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
