@@ -1,4 +1,6 @@
 #![feature(non_ascii_idents)]
+#![allow(dead_code)]
+#![allow(unused_imports)]
 
 use std::io;
 use std::net;
@@ -76,7 +78,7 @@ impl FlísTýpe {
         None
     }
     pub fn frá_auðkenni(au: usize) -> Self {
-        FlísTýpe::frá_auðkenni(au)
+        FlísTýpe((au % 34) as u8)
     }
     pub fn í_liturtýpe(self) -> LiturTýpe {
         LiturTýpe::frá_auðkenni(self.auðkenni() / 9)
@@ -207,7 +209,9 @@ fn main() -> io::Result<()> {
     }
     for höndla in &mut höndfong {
         if let Some(þráður) = höndla.take() {
-            þráður.join();
+            if þráður.join().is_err() {
+                return Err(io::Error::new(io::ErrorKind::Other, "failed to thread join"));
+            }
         }
     }
     Ok(())
@@ -224,7 +228,7 @@ enum Command {
     Mahjong(FlísTýpe)
 }
 
-fn sub(mut fals : net::TcpStream, veffang : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
+fn sub(mut fals : net::TcpStream, _veffang : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
     let mut s = String::new();
     for f in Flís::gera_ítreki() {
         s.push(f.í_flístýpe().í_letur());
@@ -276,15 +280,15 @@ fn parse_flísar<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Vec<
     let flísar = tokens.next().ok_or(io::ErrorKind::Other)?;
     flísar.chars().map(parse_flís).collect()
 }
-fn parse_pung_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+fn parse_pung_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     let flísar = parse_flísar(tokens)?;
     reyna_flísar_í_pung(flísar).map(|c| Command::Pung(c)).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
 }
-fn parse_chow_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+fn parse_chow_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     let flísar = parse_flísar(tokens)?;
     reyna_flísar_í_chow(flísar).map(|c| Command::Pung(c)).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
 }
-fn parse_discard_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+fn parse_discard_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     let flísar = parse_flísar(tokens)?;
     if flísar.len() == 1 {
         Ok(Command::Discard(flísar[0]))
@@ -306,13 +310,13 @@ fn parse_command<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Comm
 }
 
 fn parse_line(fals: &mut impl Write, line: &str) -> io::Result<()> {
-    let mut words = line.split_whitespace();
+    let words = line.split_whitespace();
     let command: Command = parse_command(words)?;
     writeln!(fals, "{:?}", command)
 }
 
 #[test]
-fn it_works() {
-    let p = parse_pung_arg(&["🀖🀖🀖"]).unwrap();
+fn it_works(){
+    let p = parse_pung_arg(vec!["🀖🀖🀖"].into_iter()).unwrap();
     assert!(p == Command::Pung(FlísTýpe(15)))
 }
