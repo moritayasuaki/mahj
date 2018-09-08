@@ -157,7 +157,7 @@ impl ValdMetorð {
         if (p & (p-1)) != 0 {
             return None;
         }
-        let p = p.trailing_zeros();
+        let p = p.trailing_zeros() / 3;
         Some(Metorð::frá_auðkenni(p as usize))
     }
 }
@@ -183,7 +183,7 @@ impl ValdLitur {
         if (p & (p-1)) != 0 {
             return None;
         }
-        let p = p.trailing_zeros();
+        let p = p.trailing_zeros() / 4;
         Some(LiturTýpe::frá_auðkenni(p as usize))
     }
 }
@@ -195,8 +195,7 @@ struct Request {
 
 type Höndla = Option<thread::JoinHandle<io::Result<()>>>;
 
-fn main() -> io::Result<()> {
-    println!("binding localhost:8080 ...");
+fn main() -> io::Result<()> { println!("binding localhost:8080 ...");
     let hlustandi = net::TcpListener::bind("localhost:8080")?;
     // let mut handles = Vec::new();
     let mut höndfong: [Höndla; 4] = [None, None, None, None];
@@ -274,19 +273,26 @@ fn reyna_flísar_í_chow(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
 }
 
 fn parse_flís(letúr: char) -> io::Result<FlísTýpe> {
-    FlísTýpe::frá_letur(letúr).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
+    FlísTýpe::frá_letur(letúr)
+        .ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
 }
 fn parse_flísar<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Vec<FlísTýpe>> {
     let flísar = tokens.next().ok_or(io::ErrorKind::Other)?;
-    flísar.chars().map(parse_flís).collect()
+    flísar.chars()
+        .map(parse_flís)
+        .collect()
 }
 fn parse_pung_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     let flísar = parse_flísar(tokens)?;
-    reyna_flísar_í_pung(flísar).map(|c| Command::Pung(c)).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
+    reyna_flísar_í_pung(flísar)
+        .map(|c| Command::Pung(c))
+        .ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
 }
 fn parse_chow_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     let flísar = parse_flísar(tokens)?;
-    reyna_flísar_í_chow(flísar).map(|c| Command::Pung(c)).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
+    reyna_flísar_í_chow(flísar)
+        .map(|c| Command::Pung(c))
+        .ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
 }
 fn parse_discard_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     let flísar = parse_flísar(tokens)?;
@@ -316,7 +322,14 @@ fn parse_line(fals: &mut impl Write, line: &str) -> io::Result<()> {
 }
 
 #[test]
-fn it_works(){
+fn test_parse_pung() {
     let p = parse_pung_arg(vec!["🀖🀖🀖"].into_iter()).unwrap();
     assert!(p == Command::Pung(FlísTýpe(15)))
 }
+#[test]
+fn test_vald_metorð_frá_ítreki() {
+    let ítreki = vec![Metorð(0), Metorð(1), Metorð(2)].into_iter();
+    let p = ValdMetorð::frá_ítreki(ítreki);
+    assert!(p == ValdMetorð(0o000000111))
+}
+
