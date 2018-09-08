@@ -22,13 +22,13 @@ struct LiturTýpe(u8);
 struct Metorð(u8);
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
-struct Vald_Metorð(u32);
+struct ValdMetorð(u32);
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
-struct Vald_Litur(u16);
+struct ValdLitur(u16);
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
-struct Vald_Litur_Metorð([u32; 4]);
+struct ValdLiturMetorð([u32; 4]);
 
 impl Flís {
     const NÚMER: usize = 136;
@@ -134,13 +134,13 @@ impl Metorð {
     }
 }
 
-impl Vald_Metorð {
+impl ValdMetorð {
     pub fn frá_ítreki<'a>(metorð: impl Iterator<Item=Metorð>) -> Self {
         let mut m = 0;
         for metorði in metorð {
             m += 1 << (3 * metorði.auðkenni())
         }
-        Vald_Metorð(m)
+        ValdMetorð(m)
     }
     pub fn er_tómur(&self) -> bool {
         self.0 == 0
@@ -160,13 +160,13 @@ impl Vald_Metorð {
     }
 }
 
-impl Vald_Litur {
+impl ValdLitur {
     pub fn frá_ítreki<'a>(litir: impl Iterator<Item=LiturTýpe>) -> Self {
         let mut l = 0;
         for litur in litir {
             l += 1 << (4 * litur.auðkenni())
         }
-        Vald_Litur(l)
+        ValdLitur(l)
     }
     pub fn er_tómur(&self) -> bool {
         self.0 == 0
@@ -213,7 +213,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
 enum Command {
     Tsumo,
     Kong(FlísTýpe),
@@ -221,7 +221,7 @@ enum Command {
     Chow(FlísTýpe),
     Call(FlísTýpe),
     Discard(FlísTýpe),
-    Mahjoong(FlísTýpe)
+    Mahjong(FlísTýpe)
 }
 
 fn sub(mut fals : net::TcpStream, veffang : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
@@ -241,9 +241,9 @@ fn reyna_flísar_í_pung(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
     if flísar.len() != 3 {
         return None
     }
-    let vald_litur = Vald_Litur::frá_ítreki(flísar.iter().map(|f| f.í_liturtýpe()));
+    let vald_litur = ValdLitur::frá_ítreki(flísar.iter().map(|f| f.í_liturtýpe()));
     let o_litur = vald_litur.ein_tegund();
-    let vald_metorð = Vald_Metorð::frá_ítreki(flísar.iter().map(|f| f.í_metorð()));
+    let vald_metorð = ValdMetorð::frá_ítreki(flísar.iter().map(|f| f.í_metorð()));
     let o_metorð = vald_metorð.ein_tegund();
 
     if let (Some(metorð), Some(litur)) = (o_metorð, o_litur) {
@@ -268,30 +268,32 @@ fn reyna_flísar_í_chow(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
     }
     Some(flísar[0]) // todo
 }
+
+fn parse_flís(letúr: char) -> io::Result<FlísTýpe> {
+    FlísTýpe::frá_letur(letúr).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
+}
+fn parse_flísar<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Vec<FlísTýpe>> {
+    let flísar = tokens.next().ok_or(io::ErrorKind::Other)?;
+    flísar.chars().map(parse_flís).collect()
+}
+fn parse_pung_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+    let flísar = parse_flísar(tokens)?;
+    reyna_flísar_í_pung(flísar).map(|c| Command::Pung(c)).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
+}
+fn parse_chow_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+    let flísar = parse_flísar(tokens)?;
+    reyna_flísar_í_chow(flísar).map(|c| Command::Pung(c)).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
+}
+fn parse_discard_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+    let flísar = parse_flísar(tokens)?;
+    if flísar.len() == 1 {
+        Ok(Command::Discard(flísar[0]))
+    } else {
+        Err(io::Error::new(io::ErrorKind::Other, "no such command"))
+    }
+}
+
 fn parse_command<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
-    fn parse_flís(letúr: char) -> io::Result<FlísTýpe> {
-        FlísTýpe::frá_letur(letúr).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
-    }
-    fn parse_flísar<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Vec<FlísTýpe>> {
-        let flísar = tokens.next().ok_or(io::ErrorKind::Other)?;
-        flísar.chars().map(parse_flís).collect()
-    }
-    fn parse_pung_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
-        let flísar = parse_flísar(tokens)?;
-        reyna_flísar_í_pung(flísar).map(|c| Command::Pung(c)).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
-    }
-    fn parse_chow_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
-        let flísar = parse_flísar(tokens)?;
-        reyna_flísar_í_chow(flísar).map(|c| Command::Pung(c)).ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
-    }
-    fn parse_discard_arg<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
-        let flísar = parse_flísar(tokens)?;
-        if flísar.len() == 1 {
-            Ok(Command::Discard(flísar[0]))
-        } else {
-            Err(io::Error::new(io::ErrorKind::Other, "no such command"))
-        }
-    }
     let command = tokens.next().ok_or(io::ErrorKind::Other)?;
     match command.as_ref() {
     "tsumo" => Ok(Command::Tsumo),
@@ -303,8 +305,14 @@ fn parse_command<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Comm
 
 }
 
-fn parse_line(fals: &mut net::TcpStream, line: &str) -> io::Result<()> {
+fn parse_line(fals: &mut impl Write, line: &str) -> io::Result<()> {
     let mut words = line.split_whitespace();
     let command: Command = parse_command(words)?;
     writeln!(fals, "{:?}", command)
+}
+
+#[test]
+fn it_works() {
+    let p = parse_pung_arg(&["🀖🀖🀖"]).unwrap();
+    assert!(p == Command::Pung(FlísTýpe(15)))
 }
