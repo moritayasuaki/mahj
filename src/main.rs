@@ -360,6 +360,8 @@ fn test_parse_chow() {
     assert!(p == Command::Pung(FlísTýpe(18)));
     let p = parse_chow_arg(vec!["🀙🀚"].into_iter());
     assert!(p.is_err());
+    let p = parse_chow_arg(vec!["🀋🀌🀍🀎"].into_iter());
+    assert!(p.is_err());
 }
 #[test]
 fn test_vald_metorð_frá_ítreki() {
