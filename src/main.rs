@@ -160,6 +160,27 @@ impl ValdMetorð {
         let p = p.trailing_zeros() / 3;
         Some(Metorð::frá_auðkenni(p as usize))
     }
+    pub fn veldu_pung(&self) -> Option<Metorð> {
+        let p = self.0;
+        let p = p + 0o111111111;
+        let p = p & 0o444444444;
+        let p = p.trailing_zeros() / 3;
+        Some(Metorð::frá_auðkenni(p as usize))
+    }
+    pub fn veldu_kong(&self) -> Option<Metorð> {
+        let p = self.0;
+        let p = p & 0o444444444;
+        let p = p.trailing_zeros() / 3;
+        Some(Metorð::frá_auðkenni(p as usize))
+    }
+    pub fn veldu_chow(&self) -> Option<Metorð> {
+        let p = self.0;
+        let p = p | p >> 1 | p >> 2;
+        let p = p & 0o111111111;
+        let p = p & p >> 3 & p >> 6;
+        let p = p.trailing_zeros() / 3;
+        Some(Metorð::frá_auðkenni(p as usize))
+    }
 }
 
 impl ValdLitur {
@@ -247,9 +268,9 @@ fn reyna_flísar_í_pung(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
     let vald_litur = ValdLitur::frá_ítreki(flísar.iter().map(|f| f.í_liturtýpe()));
     let o_litur = vald_litur.ein_tegund();
     let vald_metorð = ValdMetorð::frá_ítreki(flísar.iter().map(|f| f.í_metorð()));
-    let o_metorð = vald_metorð.ein_tegund();
+    let o_metorð = vald_metorð.veldu_pung();
 
-    if let (Some(metorð), Some(litur)) = (o_metorð, o_litur) {
+    if let (Some(litur), Some(metorð)) = (o_litur, o_metorð) {
         return Some(FlísTýpe::frá_litur_og_metorð(litur, metorð));
     }
     None
@@ -259,17 +280,22 @@ fn reyna_flísar_í_chow(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
     if flísar.len() != 3 {
         return None
     }
-    let l = flísar[0].í_liturtýpe();
-    if l.er_heiður() {
+    let vald_litur = ValdLitur::frá_ítreki(flísar.iter().map(|f| f.í_liturtýpe()));
+    let o_litur = vald_litur.ein_tegund();
+    if o_litur.is_none() {
         return None
     }
-    if l.er_heiður() {
+    let litur = o_litur.unwrap();
+    if litur.er_heiður()  {
         return None
     }
-    if (l != flísar[1].í_liturtýpe()) | (l != flísar[2].í_liturtýpe()) {
-        return None
+    let vald_metorð = ValdMetorð::frá_ítreki(flísar.iter().map(|f| f.í_metorð()));
+    let o_metorð = vald_metorð.veldu_chow();
+
+    if let Some(metorð) = o_metorð {
+        return Some(FlísTýpe::frá_litur_og_metorð(litur, metorð));
     }
-    Some(flísar[0]) // todo
+    return None
 }
 
 fn parse_flís(letúr: char) -> io::Result<FlísTýpe> {
@@ -302,7 +328,6 @@ fn parse_discard_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Comm
         Err(io::Error::new(io::ErrorKind::Other, "no such command"))
     }
 }
-
 fn parse_command<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     let command = tokens.next().ok_or(io::ErrorKind::Other)?;
     match command.as_ref() {
@@ -312,7 +337,6 @@ fn parse_command<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Comm
     "discard" => parse_discard_arg(tokens),
     _ => Err(io::Error::new(io::ErrorKind::Other, "no such command"))
     }
-
 }
 
 fn parse_line(fals: &mut impl Write, line: &str) -> io::Result<()> {
@@ -324,7 +348,18 @@ fn parse_line(fals: &mut impl Write, line: &str) -> io::Result<()> {
 #[test]
 fn test_parse_pung() {
     let p = parse_pung_arg(vec!["🀖🀖🀖"].into_iter()).unwrap();
-    assert!(p == Command::Pung(FlísTýpe(15)))
+    assert!(p == Command::Pung(FlísTýpe(15)));
+    let p = parse_pung_arg(vec!["🀀🀀🀀🀀"].into_iter());
+    assert!(p.is_err());
+    let p = parse_pung_arg(vec!["🀖🀖"].into_iter());
+    assert!(p.is_err());
+}
+#[test]
+fn test_parse_chow() {
+    let p = parse_chow_arg(vec!["🀙🀚🀛"].into_iter()).unwrap();
+    assert!(p == Command::Pung(FlísTýpe(18)));
+    let p = parse_chow_arg(vec!["🀙🀚"].into_iter());
+    assert!(p.is_err());
 }
 #[test]
 fn test_vald_metorð_frá_ítreki() {
