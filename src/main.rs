@@ -332,4 +332,13 @@ fn test_vald_metorð_frá_ítreki() {
     let p = ValdMetorð::frá_ítreki(ítreki);
     assert!(p == ValdMetorð(0o000000111))
 }
+#[test]
+fn test_vald_metorð_ein_tegund() {
+    let vm = ValdMetorð(0o000000111);
+    assert!(vm.ein_tegund().is_none());
+    let vm = ValdMetorð(0o0);
+    assert!(vm.ein_tegund().is_none());
+    let vm = ValdMetorð(0o100);
+    assert!(vm.ein_tegund().unwrap() == Metorð(2))
+}
 
