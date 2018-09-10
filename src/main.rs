@@ -160,20 +160,20 @@ impl ValdMetorð {
         let p = p.trailing_zeros() / 3;
         Some(Metorð::frá_auðkenni(p as usize))
     }
-    pub fn taka_til_pung(&self) -> Option<Metorð> {
+    pub fn finna_pung(&self) -> Option<Metorð> {
         let p = self.0;
         let p = p + 0o111111111;
         let p = p & 0o444444444;
         let p = p.trailing_zeros() / 3;
         Some(Metorð::frá_auðkenni(p as usize))
     }
-    pub fn taka_til_kong(&self) -> Option<Metorð> {
+    pub fn finna_kong(&self) -> Option<Metorð> {
         let p = self.0;
         let p = p & 0o444444444;
         let p = p.trailing_zeros() / 3;
         Some(Metorð::frá_auðkenni(p as usize))
     }
-    pub fn taka_til_chow(&self) -> Option<Metorð> {
+    pub fn finna_chow(&self) -> Option<Metorð> {
         let p = self.0;
         let p = p | p >> 1 | p >> 2;
         let p = p & 0o111111111;
@@ -267,7 +267,7 @@ fn reyna_flísar_í_kong(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
     let vald_litur = ValdLitur::frá_ítreki(flísar.iter().map(|f| f.í_liturtýpe()));
     let o_litur = vald_litur.ein_tegund();
     let vald_metorð = ValdMetorð::frá_ítreki(flísar.iter().map(|f| f.í_metorð()));
-    let o_metorð = vald_metorð.taka_til_kong();
+    let o_metorð = vald_metorð.finna_kong();
 
     if let (Some(litur), Some(metorð)) = (o_litur, o_metorð) {
         return Some(FlísTýpe::frá_litur_og_metorð(litur, metorð));
@@ -282,7 +282,7 @@ fn reyna_flísar_í_pung(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
     let vald_litur = ValdLitur::frá_ítreki(flísar.iter().map(|f| f.í_liturtýpe()));
     let o_litur = vald_litur.ein_tegund();
     let vald_metorð = ValdMetorð::frá_ítreki(flísar.iter().map(|f| f.í_metorð()));
-    let o_metorð = vald_metorð.taka_til_pung();
+    let o_metorð = vald_metorð.finna_pung();
 
     if let (Some(litur), Some(metorð)) = (o_litur, o_metorð) {
         return Some(FlísTýpe::frá_litur_og_metorð(litur, metorð));
@@ -304,7 +304,7 @@ fn reyna_flísar_í_chow(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
         return None
     }
     let vald_metorð = ValdMetorð::frá_ítreki(flísar.iter().map(|f| f.í_metorð()));
-    let o_metorð = vald_metorð.taka_til_chow();
+    let o_metorð = vald_metorð.finna_chow();
 
     if let Some(metorð) = o_metorð {
         return Some(FlísTýpe::frá_litur_og_metorð(litur, metorð));
