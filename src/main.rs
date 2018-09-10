@@ -2,6 +2,8 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
+extern crate rand;
+
 use std::io;
 use std::net;
 use std::thread;
@@ -250,8 +252,8 @@ enum Command {
 
 fn sub(mut fals : net::TcpStream, _veffang : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
     let mut s = String::new();
-    for f in Flís::gera_ítreki() {
-        s.push(f.í_flístýpe().í_letur());
+    for f in gera_hrúga().iter() {
+        s.push(f.í_flístýpe().í_letur())
     }
     writeln!(fals, "{}", s)?;
     let r = io::BufReader::new(fals.try_clone()?);
@@ -368,6 +370,29 @@ fn þatta_line(fals: &mut impl Write, line: &str) -> io::Result<()> {
     let words = line.split_whitespace();
     let command: Command = þatta_command(words)?;
     writeln!(fals, "{:?}", command)
+}
+
+fn gera_hrúga() -> [Flís; Flís::NÚMER] {
+    let mut a: [Flís; Flís::NÚMER] = unsafe {
+        mem::uninitialized()
+    };
+    for i in 0..Flís::NÚMER {
+        let f = Flís::frá_auðkenni(i);
+        let j = rand::random::<usize>() % (i + 1);
+        if i != j {
+            a[i] = mem::replace(&mut a[j], f);
+        } else {
+            a[i] = f;
+        }
+    }
+    a
+}
+
+#[test]
+fn test_gera_hrúga() {
+    let b = gera_hrúga();
+    b.iter().map(|p| write!(io::stderr(), "{}", p.í_flístýpe().í_letur()));
+    writeln!(io::stderr(),"");
 }
 
 #[test]
