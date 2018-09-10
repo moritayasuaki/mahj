@@ -322,18 +322,28 @@ fn þatta_flísar<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Vec
         .map(þatta_flís)
         .collect()
 }
+
+fn þatta_kong_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+    let flísar = þatta_flísar(tokens)?;
+    reyna_flísar_í_kong(flísar)
+        .map(|c| Command::Kong(c))
+        .ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
+}
+
 fn þatta_pung_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     let flísar = þatta_flísar(tokens)?;
     reyna_flísar_í_pung(flísar)
         .map(|c| Command::Pung(c))
         .ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
 }
+
 fn þatta_chow_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     let flísar = þatta_flísar(tokens)?;
     reyna_flísar_í_chow(flísar)
         .map(|c| Command::Pung(c))
         .ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
 }
+
 fn þatta_discard_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     let flísar = þatta_flísar(tokens)?;
     if flísar.len() == 1 {
@@ -342,6 +352,7 @@ fn þatta_discard_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Com
         Err(io::Error::new(io::ErrorKind::Other, "no such command"))
     }
 }
+
 fn þatta_command<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     let command = tokens.next().ok_or(io::ErrorKind::Other)?;
     match command.as_ref() {
@@ -359,6 +370,15 @@ fn þatta_line(fals: &mut impl Write, line: &str) -> io::Result<()> {
     writeln!(fals, "{:?}", command)
 }
 
+#[test]
+fn test_þatta_kong() {
+    let p = þatta_kong_arg(vec!["🀖🀖🀖"].into_iter());
+    assert!(p.is_err());
+    let p = þatta_kong_arg(vec!["🀀🀀🀀🀀"].into_iter()).unwrap();
+    assert!(p == Command::Kong(FlísTýpe(27)));
+    let p = þatta_kong_arg(vec!["🀖🀖"].into_iter());
+    assert!(p.is_err());
+}
 #[test]
 fn test_þatta_pung() {
     let p = þatta_pung_arg(vec!["🀖🀖🀖"].into_iter()).unwrap();
