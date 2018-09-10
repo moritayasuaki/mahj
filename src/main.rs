@@ -256,9 +256,23 @@ fn sub(mut fals : net::TcpStream, _veffang : net::SocketAddr, _tx: mpsc::Sender<
     writeln!(fals, "{}", s)?;
     let r = io::BufReader::new(fals.try_clone()?);
     for line in r.lines() {
-        parse_line(&mut fals, &line?)?;
+        þatta_line(&mut fals, &line?)?;
     }
     Ok(())
+}
+fn reyna_flísar_í_kong(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
+    if flísar.len() != 4 {
+        return None
+    }
+    let vald_litur = ValdLitur::frá_ítreki(flísar.iter().map(|f| f.í_liturtýpe()));
+    let o_litur = vald_litur.ein_tegund();
+    let vald_metorð = ValdMetorð::frá_ítreki(flísar.iter().map(|f| f.í_metorð()));
+    let o_metorð = vald_metorð.taka_til_kong();
+
+    if let (Some(litur), Some(metorð)) = (o_litur, o_metorð) {
+        return Some(FlísTýpe::frá_litur_og_metorð(litur, metorð));
+    }
+    None
 }
 
 fn reyna_flísar_í_pung(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
@@ -298,69 +312,69 @@ fn reyna_flísar_í_chow(flísar : Vec<FlísTýpe>) -> Option<FlísTýpe> {
     return None
 }
 
-fn parse_flís(letúr: char) -> io::Result<FlísTýpe> {
+fn þatta_flís(letúr: char) -> io::Result<FlísTýpe> {
     FlísTýpe::frá_letur(letúr)
         .ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
 }
-fn parse_flísar<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Vec<FlísTýpe>> {
+fn þatta_flísar<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Vec<FlísTýpe>> {
     let flísar = tokens.next().ok_or(io::ErrorKind::Other)?;
     flísar.chars()
-        .map(parse_flís)
+        .map(þatta_flís)
         .collect()
 }
-fn parse_pung_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
-    let flísar = parse_flísar(tokens)?;
+fn þatta_pung_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+    let flísar = þatta_flísar(tokens)?;
     reyna_flísar_í_pung(flísar)
         .map(|c| Command::Pung(c))
         .ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
 }
-fn parse_chow_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
-    let flísar = parse_flísar(tokens)?;
+fn þatta_chow_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+    let flísar = þatta_flísar(tokens)?;
     reyna_flísar_í_chow(flísar)
         .map(|c| Command::Pung(c))
         .ok_or(io::Error::new(io::ErrorKind::Other, "no such command"))
 }
-fn parse_discard_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
-    let flísar = parse_flísar(tokens)?;
+fn þatta_discard_arg<'a>(tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+    let flísar = þatta_flísar(tokens)?;
     if flísar.len() == 1 {
         Ok(Command::Discard(flísar[0]))
     } else {
         Err(io::Error::new(io::ErrorKind::Other, "no such command"))
     }
 }
-fn parse_command<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
+fn þatta_command<'a>(mut tokens: impl Iterator<Item=&'a str>) -> io::Result<Command> {
     let command = tokens.next().ok_or(io::ErrorKind::Other)?;
     match command.as_ref() {
     "tsumo" => Ok(Command::Tsumo),
-    "pung" => parse_pung_arg(tokens),
-    "chow" => parse_chow_arg(tokens),
-    "discard" => parse_discard_arg(tokens),
+    "pung" => þatta_pung_arg(tokens),
+    "chow" => þatta_chow_arg(tokens),
+    "discard" => þatta_discard_arg(tokens),
     _ => Err(io::Error::new(io::ErrorKind::Other, "no such command"))
     }
 }
 
-fn parse_line(fals: &mut impl Write, line: &str) -> io::Result<()> {
+fn þatta_line(fals: &mut impl Write, line: &str) -> io::Result<()> {
     let words = line.split_whitespace();
-    let command: Command = parse_command(words)?;
+    let command: Command = þatta_command(words)?;
     writeln!(fals, "{:?}", command)
 }
 
 #[test]
-fn test_parse_pung() {
-    let p = parse_pung_arg(vec!["🀖🀖🀖"].into_iter()).unwrap();
+fn test_þatta_pung() {
+    let p = þatta_pung_arg(vec!["🀖🀖🀖"].into_iter()).unwrap();
     assert!(p == Command::Pung(FlísTýpe(15)));
-    let p = parse_pung_arg(vec!["🀀🀀🀀🀀"].into_iter());
+    let p = þatta_pung_arg(vec!["🀀🀀🀀🀀"].into_iter());
     assert!(p.is_err());
-    let p = parse_pung_arg(vec!["🀖🀖"].into_iter());
+    let p = þatta_pung_arg(vec!["🀖🀖"].into_iter());
     assert!(p.is_err());
 }
 #[test]
-fn test_parse_chow() {
-    let p = parse_chow_arg(vec!["🀙🀚🀛"].into_iter()).unwrap();
+fn test_þatta_chow() {
+    let p = þatta_chow_arg(vec!["🀙🀚🀛"].into_iter()).unwrap();
     assert!(p == Command::Pung(FlísTýpe(18)));
-    let p = parse_chow_arg(vec!["🀙🀚"].into_iter());
+    let p = þatta_chow_arg(vec!["🀙🀚"].into_iter());
     assert!(p.is_err());
-    let p = parse_chow_arg(vec!["🀋🀌🀍🀎"].into_iter());
+    let p = þatta_chow_arg(vec!["🀋🀌🀍🀎"].into_iter());
     assert!(p.is_err());
 }
 #[test]
@@ -378,4 +392,3 @@ fn test_vald_metorð_ein_tegund() {
     let vm = ValdMetorð(0o100);
     assert!(vm.ein_tegund().unwrap() == Metorð(2))
 }
-
