@@ -388,6 +388,25 @@ fn gera_hrúga() -> [Flís; Flís::NÚMER] {
     a
 }
 
+struct Veggur {
+    flísar: [Flís; Flís::NÚMER],
+    brjóta : usize,
+    dead : usize,
+    next : usize
+}
+
+impl Veggur {
+    fn draga(&mut self) -> Flís {
+        let flís = self.flísar[self.next % Flís::NÚMER];
+        self.next += 1;
+        flís
+    }
+    fn draga_extra(&mut self) -> Flís {
+        self.dead -= 1;
+        self.flísar[self.dead % Flís::NÚMER]
+    }
+}
+
 fn stokka_flísar(flísar: &mut [Flís; Flís::NÚMER]) {
     for i in 0..Flís::NÚMER {
         let j = rand::random::<usize>() % (i + 1);
