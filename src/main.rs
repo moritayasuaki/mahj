@@ -388,11 +388,15 @@ fn gera_hrúga() -> [Flís; Flís::NÚMER] {
     a
 }
 
-#[test]
-fn test_gera_hrúga() {
-    let b = gera_hrúga();
-    b.iter().map(|p| write!(io::stderr(), "{}", p.í_flístýpe().í_letur()));
-    writeln!(io::stderr(),"");
+fn stokka_flísar(flísar: &mut [Flís; Flís::NÚMER]) {
+    for i in 0..Flís::NÚMER {
+        let j = rand::random::<usize>() % (i + 1);
+        if i != j {
+            let t = flísar[i];
+            flísar[i] = flísar[j];
+            flísar[j] = t;
+        }
+    }
 }
 
 #[test]
