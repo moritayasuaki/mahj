@@ -390,20 +390,62 @@ fn gera_hrúga() -> [Flís; Flís::NÚMER] {
 
 struct Veggur {
     flísar: [Flís; Flís::NÚMER],
-    brjóta : usize,
-    dead : usize,
-    next : usize
+    brjóta_vísitölu: usize,
+    dauður_vísitölu: usize,
+    næstur_vísitölu: usize
 }
 
 impl Veggur {
-    fn draga(&mut self) -> Flís {
-        let flís = self.flísar[self.next % Flís::NÚMER];
-        self.next += 1;
-        flís
+    fn summa(a: usize, b: usize) -> usize {
+        let s = a + b;
+        if s >= Flís::NÚMER {
+            s - Flís::NÚMER
+        } else {
+            s
+        }
     }
-    fn draga_extra(&mut self) -> Flís {
-        self.dead -= 1;
-        self.flísar[self.dead % Flís::NÚMER]
+    fn munur(a: usize, b: usize) -> usize {
+        if a >= b {
+            a - b
+        } else {
+            a + Flís::NÚMER - b
+        }
+    }
+    fn fækkun(a: usize) -> usize {
+        if a == 0 {
+            Flís::NÚMER - 1
+        } else {
+            a - 1
+        }
+    }
+    fn hækkun(a: usize) -> usize {
+        if a == (Flís::NÚMER - 1) {
+            0
+        } else {
+            a + 1
+        }
+    }
+
+    fn eftil(&self) -> usize {
+        Self::munur(self.næstur_vísitölu, self.dauður_vísitölu)
+    }
+
+    fn draga(&mut self) -> Option<Flís> {
+        if self.eftil() <= 14 {
+            return None;
+        }
+        self.næstur_vísitölu = Self::fækkun(self.næstur_vísitölu);
+        let flís = self.flísar[self.næstur_vísitölu % Flís::NÚMER];
+        Some(flís)
+    }
+
+    fn draga_extra(&mut self) -> Option<Flís> {
+        if self.eftil() <= 14 {
+            return None;
+        }
+        let flís = self.flísar[self.dauður_vísitölu % Flís::NÚMER];
+        self.dauður_vísitölu = Self::hækkun(self.dauður_vísitölu);
+        Some(flís)
     }
 }
 
