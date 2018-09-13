@@ -48,6 +48,15 @@ impl Flís {
     pub fn gera_ítreki() -> impl Iterator<Item=Self> {
         (0..Self::NÚMER).map(Self::frá_auðkenni)
     }
+    pub fn gera_fylki() -> [Flís; Self::NÚMER] {
+        let mut f : [Flís; Self::NÚMER] = unsafe {
+            mem::uninitialized()
+        };
+        for i in 0..Self::NÚMER {
+            f[i] = Self::frá_auðkenni(i);
+        }
+        f
+    }
 }
 
 impl FlísTýpe {
@@ -396,6 +405,14 @@ struct Veggur {
 }
 
 impl Veggur {
+    fn nýtt() -> Self {
+        Veggur {
+            flísar: Flís::gera_fylki(),
+            brjóta_vísitölu: 0, 
+            dauður_vísitölu: 0,
+            næstur_vísitölu: 0
+        }
+    }
     fn summa(a: usize, b: usize) -> usize {
         let s = a + b;
         if s >= Flís::NÚMER {
