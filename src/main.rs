@@ -408,7 +408,7 @@ impl Veggur {
     fn nýtt() -> Self {
         Veggur {
             flísar: Flís::gera_fylki(),
-            brjóta_vísitölu: 0, 
+            brjóta_vísitölu: 0,
             dauður_vísitölu: 0,
             næstur_vísitölu: 0
         }
@@ -464,15 +464,23 @@ impl Veggur {
         self.dauður_vísitölu = Self::hækkun(self.dauður_vísitölu);
         Some(flís)
     }
+
+    fn stokka(&mut self) {
+        stokka_fylski(&mut self.flísar);
+        let b = rand::random::<usize>() % Flís::NÚMER; 
+        self.brjóta_vísitölu = b;
+        self.dauður_vísitölu = b;
+        self.næstur_vísitölu = b;
+    }
 }
 
-fn stokka_flísar(flísar: &mut [Flís; Flís::NÚMER]) {
-    for i in 0..Flís::NÚMER {
+fn stokka_fylski(f: &mut [impl Copy]) {
+    for i in 0..(f.len()) {
         let j = rand::random::<usize>() % (i + 1);
         if i != j {
-            let t = flísar[i];
-            flísar[i] = flísar[j];
-            flísar[j] = t;
+            let t = f[i];
+            f[i] = f[j];
+            f[j] = t;
         }
     }
 }
