@@ -25,6 +25,9 @@ struct LiturTýpe(u8);
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 struct Metorð(u8);
 
+#[derive(Debug,Clone,PartialEq,Eq)]
+struct ValdFlís([u64; 3]);
+
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 struct ValdMetorð(u32);
 
@@ -144,6 +147,26 @@ impl Metorð {
     }
     pub fn gera_ítreki() -> impl Iterator<Item=Self> {
         (0..Self::NÚMER).map(Self::frá_auðkenni)
+    }
+}
+impl ValdFlís{
+    pub fn frá_ítreki<'a>(flísar: impl Iterator<Item=Flís>) -> Self {
+        let mut f = [0, 0, 0];
+        for flís in flísar {
+            let a = flís.auðkenni();
+            f[a / 64] |= 1 << (a % 64)
+        }
+        ValdFlís(f)
+    }
+    pub fn í_veci<'a>(self) -> Vec<Flís> {
+        let mut v = Vec::new();
+        let m = self.0;
+        for i in 0..Flís::NÚMER {
+            if (m[i % 64] & (i as u64)) != 0 {
+                v.push(Flís::frá_auðkenni(i));
+            }
+        }
+        v
     }
 }
 
@@ -483,6 +506,14 @@ fn stokka_fylski(f: &mut [impl Copy]) {
             f[j] = t;
         }
     }
+}
+
+struct Hönd {
+    flísar : Flís
+}
+
+impl Hönd {
+
 }
 
 #[test]
