@@ -92,7 +92,7 @@ impl FlísTýpe {
         None
     }
     pub fn frá_auðkenni(au: usize) -> Self {
-        FlísTýpe((au % 34) as u8)
+        FlísTýpe((au % Self::NÚMER) as u8)
     }
     pub fn í_liturtýpe(self) -> LiturTýpe {
         LiturTýpe::frá_auðkenni(self.auðkenni() / 9)
