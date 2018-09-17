@@ -149,7 +149,7 @@ impl Metorð {
         (0..Self::NÚMER).map(Self::frá_auðkenni)
     }
 }
-impl ValdFlís{
+impl ValdFlís {
     pub fn frá_ítreki<'a>(flísar: impl Iterator<Item=Flís>) -> Self {
         let mut f = [0, 0, 0];
         for flís in flísar {
@@ -263,13 +263,14 @@ fn main() -> io::Result<()> { println!("binding localhost:8080 ...");
     }
     for höndla in &mut höndfong {
         if let Some(þráður) = höndla.take() {
-            if þráður.join().is_err() {
+                if þráður.join().is_err() {
                 return Err(io::Error::new(io::ErrorKind::Other, "failed to thread join"));
             }
         }
     }
     Ok(())
 }
+
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 enum Command {
@@ -508,12 +509,32 @@ fn stokka_fylski(f: &mut [impl Copy]) {
     }
 }
 
-struct Hönd {
-    flísar : Flís
+enum TangjaTýpe {
+    PongStela,
+    PongHylja,
+    KongStela,
+    KongHylja,
+    KongLeggja,
+    ChowStela,
+    ChowHylja,
+    Auga
 }
 
-impl Hönd {
+struct TangjaAuðkenni(u8);
 
+struct Tangja(TangjaTýpe, TangjaAuðkenni, FlísTýpe);
+
+struct Hönd {
+    flísar : [Flís; 14],
+    nflísar : usize,
+    tengja : [Tangja; 4],
+    ntangja : usize,
+}
+
+struct Fljót {
+    flísar : [Flís; 24],
+    nflísar : usize,
+    richi : usize,
 }
 
 #[test]
