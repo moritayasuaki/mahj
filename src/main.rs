@@ -509,7 +509,7 @@ fn stokka_fylski(f: &mut [impl Copy]) {
     }
 }
 
-enum TangjaTýpe {
+enum TangjaTýpe { // connect
     PongStela,
     PongHylja,
     KongStela,
@@ -520,21 +520,39 @@ enum TangjaTýpe {
     Auga
 }
 
-struct TangjaAuðkenni(u8);
+struct TangjaAuðkenni(u8); 
 
 struct Tangja(TangjaTýpe, TangjaAuðkenni, FlísTýpe);
 
-struct Hönd {
+struct Hönd { // hand
     flísar : [Flís; 14],
     nflísar : usize,
     tengja : [Tangja; 4],
     ntangja : usize,
 }
 
-struct Fljót {
+struct Fljót { // river
     flísar : [Flís; 24],
     nflísar : usize,
     richi : usize,
+}
+
+impl Hönd {
+    fn bæta(&mut self, f: Flís) {
+        self.flísar[self.nflísar] = f;
+        self.nflísar += 1;
+    }
+    fn drága(&mut self, ft: FlísTýpe) -> Option<Flís> {
+        for i in 0..self.nflísar {
+            if self.flísar[i].í_flístýpe() == ft {
+                let f = self.flísar[i];
+                self.nflísar -= 1;
+                self.flísar[i] = self.flísar[self.nflísar];
+                return Some(f);
+            }
+        }
+        None
+    }
 }
 
 #[test]
