@@ -284,11 +284,6 @@ enum Command {
 }
 
 fn sub(mut fals : net::TcpStream, _veffang : net::SocketAddr, _tx: mpsc::Sender<Request>) -> io::Result<()> {
-    let mut s = String::new();
-    for f in gera_hrúga().iter() {
-        s.push(f.í_flístýpe().í_letur())
-    }
-    writeln!(fals, "{}", s)?;
     let r = io::BufReader::new(fals.try_clone()?);
     for line in r.lines() {
         þatta_line(&mut fals, &line?)?;
@@ -405,21 +400,6 @@ fn þatta_line(fals: &mut impl Write, line: &str) -> io::Result<()> {
     writeln!(fals, "{:?}", command)
 }
 
-fn gera_hrúga() -> [Flís; Flís::NÚMER] {
-    let mut a: [Flís; Flís::NÚMER] = unsafe {
-        mem::uninitialized()
-    };
-    for i in 0..Flís::NÚMER {
-        let f = Flís::frá_auðkenni(i);
-        let j = rand::random::<usize>() % (i + 1);
-        if i != j {
-            a[i] = mem::replace(&mut a[j], f);
-        } else {
-            a[i] = f;
-        }
-    }
-    a
-}
 
 struct Veggur {
     flísar: [Flís; Flís::NÚMER],
