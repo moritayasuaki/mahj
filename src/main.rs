@@ -400,8 +400,7 @@ fn þatta_line(fals: &mut impl Write, line: &str) -> io::Result<()> {
     writeln!(fals, "{:?}", command)
 }
 
-
-struct Veggur {
+struct Veggur { // wall
     flísar: [Flís; Flís::NÚMER],
     brjóta_vísitölu: usize,
     dauður_vísitölu: usize,
@@ -505,24 +504,34 @@ struct TangjaAuðkenni(u8);
 struct Tangja(TangjaTýpe, TangjaAuðkenni, FlísTýpe);
 
 struct Hönd { // hand
-    flísar : [Flís; 14],
-    nflísar : usize,
-    tengja : [Tangja; 4],
-    ntangja : usize,
+    flísar: [Flís; 14],
+    nflísar: usize,
+    tengja: [Tangja; 4],
+    ntangja: usize,
 }
 
 struct Fljót { // river
-    flísar : [Flís; 24],
-    nflísar : usize,
-    richi : usize,
+    flísar: [Flís; 24],
+    nflísar: usize,
+    richi: usize,
 }
 
-impl Hönd {
-    fn bæta(&mut self, f: Flís) {
+struct Borð {
+    höndur: [Hönd; 4],
+    fljót: [Fljót; 4],
+    veggir: Veggur,
+}
+
+struct Ástand {
+    stig: [usize; 4],
+}
+
+impl Hönd { // hand
+    fn bæta(&mut self, f: Flís) { // add
         self.flísar[self.nflísar] = f;
         self.nflísar += 1;
     }
-    fn drága(&mut self, ft: FlísTýpe) -> Option<Flís> {
+    fn eyða(&mut self, ft: FlísTýpe) -> Option<Flís> { // del
         for i in 0..self.nflísar {
             if self.flísar[i].í_flístýpe() == ft {
                 let f = self.flísar[i];
@@ -534,6 +543,7 @@ impl Hönd {
         None
     }
 }
+
 
 #[test]
 fn test_þatta_kong() {
