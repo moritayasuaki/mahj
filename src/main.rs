@@ -13,6 +13,7 @@ use std::mem;
 use std::sync;
 use std::fmt;
 use std::iter;
+use std::usize;
 
 use io::{Write, Read, BufRead};
 
@@ -150,6 +151,9 @@ impl Metorð {
     }
 }
 impl ValdFlís {
+    pub fn nýr() -> Self {
+        ValdFlís([0, 0, 0])
+    }
     pub fn frá_ítreki<'a>(flísar: impl Iterator<Item=Flís>) -> Self {
         let mut f = [0, 0, 0];
         for flís in flísar {
@@ -158,7 +162,7 @@ impl ValdFlís {
         }
         ValdFlís(f)
     }
-    pub fn í_veci<'a>(self) -> Vec<Flís> {
+    pub fn til_vec<'a>(self) -> Vec<Flís> {
         let mut v = Vec::new();
         let m = self.0;
         for i in 0..Flís::NÚMER {
@@ -167,6 +171,10 @@ impl ValdFlís {
             }
         }
         v
+    }
+    pub fn add(&mut self, f: Flís) {
+        let i = f.auðkenni();
+        (self.0)[i / 64] |= 1 << (i % 64);
     }
 }
 
@@ -250,7 +258,9 @@ struct Request {
 
 type Höndla = Option<thread::JoinHandle<io::Result<()>>>;
 
-fn main() -> io::Result<()> { println!("binding localhost:8080 ...");
+/*
+fn main() -> io::Result<()> {
+    println!("binding localhost:8080 ...");
     let hlustandi = net::TcpListener::bind("localhost:8080")?;
     // let mut handles = Vec::new();
     let mut höndfong: [Höndla; 4] = [None, None, None, None];
@@ -270,6 +280,8 @@ fn main() -> io::Result<()> { println!("binding localhost:8080 ...");
     }
     Ok(())
 }
+*/
+
 
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
@@ -408,7 +420,7 @@ struct Veggur { // wall
 }
 
 impl Veggur {
-    fn nýtt() -> Self {
+    fn nýr() -> Self {
         Veggur {
             flísar: Flís::gera_fylki(),
             brjóta_vísitölu: 0,
@@ -488,7 +500,7 @@ fn stokka_fylski(f: &mut [impl Copy]) {
     }
 }
 
-enum TangjaTýpe { // connect
+enum TengjaTýpe { // connect
     PongStela,
     PongHylja,
     KongStela,
@@ -499,21 +511,35 @@ enum TangjaTýpe { // connect
     Auga
 }
 
-struct TangjaAuðkenni(u8); 
+struct TengjaAuðkenni(u8); 
 
-struct Tangja(TangjaTýpe, TangjaAuðkenni, FlísTýpe);
+struct Tengja(TengjaTýpe, TengjaAuðkenni, FlísTýpe);
 
 struct Hönd { // hand
-    flísar: [Flís; 14],
-    nflísar: usize,
-    tengja: [Tangja; 4],
-    ntangja: usize,
+    flísar: ValdFlís,
+    tengja: Vec<Tengja>,
+}
+
+impl Hönd {
+    fn nýr() -> Self {
+        Hönd {
+            flísar: ValdFlís::nýr(),
+            tengja: Vec::new()
+        }
+    }
 }
 
 struct Fljót { // river
-    flísar: [Flís; 24],
-    nflísar: usize,
+    flísar: Vec<Flís>,
     richi: usize,
+}
+impl Fljót {
+    pub fn nýr() -> Self {
+        Fljót {
+            flísar: Vec::new(),
+            richi: std::usize::MAX
+        }
+    }
 }
 
 struct Borð {
@@ -522,25 +548,29 @@ struct Borð {
     veggir: Veggur,
 }
 
+impl Borð {
+    pub fn nýr() -> Self {
+        Borð {
+            höndur: [Hönd::nýr(), Hönd::nýr(), Hönd::nýr(), Hönd::nýr()],
+            fljót: [Fljót::nýr(), Fljót::nýr(), Fljót::nýr(), Fljót::nýr()],
+            veggir: Veggur::nýr()
+        }
+    }
+}
+
 struct Ástand {
     stig: [usize; 4],
 }
 
+fn main() -> io::Result<()> {
+    let mut borð = Borð::nýr();
+    Ok(())
+}
+
+
 impl Hönd { // hand
     fn bæta(&mut self, f: Flís) { // add
-        self.flísar[self.nflísar] = f;
-        self.nflísar += 1;
-    }
-    fn eyða(&mut self, ft: FlísTýpe) -> Option<Flís> { // del
-        for i in 0..self.nflísar {
-            if self.flísar[i].í_flístýpe() == ft {
-                let f = self.flísar[i];
-                self.nflísar -= 1;
-                self.flísar[i] = self.flísar[self.nflísar];
-                return Some(f);
-            }
-        }
-        None
+        self.flísar.add(f)
     }
 }
 
