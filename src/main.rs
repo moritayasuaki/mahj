@@ -13,7 +13,6 @@ use std::mem;
 use std::sync;
 use std::fmt;
 use std::iter;
-use std::usize;
 
 use io::{Write, Read, BufRead};
 
@@ -175,6 +174,11 @@ impl ValdFlís {
     pub fn add(&mut self, f: Flís) {
         let i = f.auðkenni();
         (self.0)[i / 64] |= 1 << (i % 64);
+    }
+    pub fn reset(&mut self) {
+        (self.0)[0] = 0;
+        (self.0)[1] = 0;
+        (self.0)[2] = 0;
     }
 }
 
@@ -556,21 +560,30 @@ impl Borð {
             veggir: Veggur::nýr()
         }
     }
+    pub fn shipai(&mut self) {
+        for i in 0..4 {
+            self.höndur[i].reset()
+        }
+    }
 }
 
 struct Ástand {
     stig: [usize; 4],
 }
 
+
 fn main() -> io::Result<()> {
     let mut borð = Borð::nýr();
+    borð.shipai();
     Ok(())
 }
-
 
 impl Hönd { // hand
     fn bæta(&mut self, f: Flís) { // add
         self.flísar.add(f)
+    }
+    fn reset(&mut self) {
+        self.flísar.reset()
     }
 }
 
