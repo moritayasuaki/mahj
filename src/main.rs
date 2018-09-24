@@ -16,6 +16,8 @@ use std::iter;
 
 use io::{Write, Read, BufRead};
 
+mod main2;
+
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 struct Flís(u8);
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
