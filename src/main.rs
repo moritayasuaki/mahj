@@ -17,6 +17,8 @@ use std::iter;
 use io::{Write, Read, BufRead};
 
 mod tile;
+mod meld;
+mod table;
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 struct Flís(u8);
