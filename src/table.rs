@@ -104,11 +104,11 @@ impl River {
     }
 }
 
-pub struct RefRever(u16);
+pub struct RiverRef(u16);
 
-impl RefRever {
-    pub fn make(wind: usize, index: usize) -> RefRever {
-        RefRever((wind + index * 4) as u16)
+impl RiverRef {
+    pub fn make(wind: usize, index: usize) -> RiverRef {
+        RiverRef((wind + index * 4) as u16)
     }
     pub fn index(&self) -> usize {
         (self.0 / 4) as usize

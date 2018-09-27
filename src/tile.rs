@@ -58,6 +58,12 @@ impl Suit {
     pub fn mk_iter() -> impl Iterator<Item=Self> {
         (0..Self::N).map(Self::from_id)
     }
+    pub fn is_horner(&self) -> bool {
+        self.0 >= 3
+    }
+    pub fn is_numeric(&self) -> bool {
+        self.0 < 3 
+    }
 }
 
 impl Rank {
@@ -195,7 +201,7 @@ impl Ranks {
         let r = r & (r >> 3) & (r >> 6);
         Ranks(r)
     }
-    pub fn filter_penchan(self) -> Self {
+    pub fn filter_penryan(self) -> Self {
         let r = self.filter_one().0;
         let r = r & (r >> 3);
         Ranks(r)
@@ -203,6 +209,16 @@ impl Ranks {
     pub fn filter_kanchan(self) -> Self {
         let r = self.filter_one().0;
         let r = r & (r >> 6);
+        Ranks(r)
+    }
+    pub fn filter_penchan(self) -> Self {
+        let r = self.filter_penryan().0;
+        let r = r & 0o010000001;
+        Ranks(r)
+    }
+    pub fn filter_ryanmen(self) -> Self {
+        let r = self.filter_penryan().0;
+        let r = r & 0o001111110;
         Ranks(r)
     }
 }
