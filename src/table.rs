@@ -1,5 +1,7 @@
 use tile::*;
 use meld::*;
+use rand;
+use mem;
 
 pub struct Table {
     wall: Wall,
@@ -75,6 +77,14 @@ impl Wall {
         }
     }
 
+    pub fn shuffle(&mut self) {
+        for i in 0..Tile::N{
+            let j = rand::random::<usize>() % (1 + i);
+            if i != j {
+                self.tiles.swap(i, j)
+            }
+        }
+    }
 }
 
 impl Land {

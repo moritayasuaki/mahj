@@ -8,9 +8,8 @@ pub struct SuitRanks{
 
 pub struct Meld {
     suitranks: SuitRanks,
-    river: Option<RiverRef>
+    robbedfrom: Option<RiverRef>
 }
-
 
 impl SuitRanks {
     pub fn tile_count(&self) -> usize {
@@ -44,13 +43,17 @@ impl SuitRanks {
     pub fn is_ryanmen(&self) -> bool {
         self.tile_count() == 2 && !self.ranks.filter_ryanmen().is_empty()
     }
+
+    pub fn is_eye(&self) -> bool {
+        self.tile_count() == 2 && !self.ranks.filter_eye().is_empty()
+    }
 }
 
 impl Meld {
     pub fn is_conceal(&self) -> bool {
-        self.river.is_none()
+        self.robbedfrom.is_none()
     }
     pub fn is_robbed(&self) -> bool {
-        self.river.is_some()
+        self.robbedfrom.is_some()
     }
 }
