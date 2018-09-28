@@ -1,5 +1,6 @@
 
 
+#[must_use]
 #[derive(Copy,Clone,Debug,PartialEq,Eq)]
 pub struct Tile(u8);
 #[derive(Copy,Clone,Debug,PartialEq,Eq)]

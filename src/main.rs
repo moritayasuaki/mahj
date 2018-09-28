@@ -3,6 +3,8 @@
 #![allow(unused_imports)]
 
 extern crate rand;
+#[macro_use]
+extern crate failure;
 
 use std::io;
 use std::net;

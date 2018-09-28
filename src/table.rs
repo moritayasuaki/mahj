@@ -4,6 +4,8 @@ use rand;
 use mem;
 use std;
 
+pub type Wind = u8;
+
 pub struct Table {
     pub wall: Wall,
     pub lands: [Land; 4],
@@ -40,6 +42,9 @@ impl Table {
             self.rivers[i].clear();
         }
         self.wall.shuffle();
+    }
+    pub fn break_tiles(&mut self, dice: usize) {
+        self.wall.ridge = dice * 32;
     }
 }
 
@@ -102,6 +107,11 @@ impl Wall {
                 self.tiles.swap(i, j)
             }
         }
+    }
+
+    pub fn breaking(&mut self, pos: usize) {
+        self.index = pos;
+        self.ridge = pos;
     }
 }
 
