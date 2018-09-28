@@ -98,6 +98,11 @@ impl Tiles {
     pub fn count(&self) -> usize {
         self.0.iter().map(|&b| b.count_ones() as usize).sum()
     }
+    pub fn clear(&mut self) {
+        for t in self.0.iter_mut() {
+            *t = 0;
+        }
+    }
     pub fn next(&mut self) -> Option<Tile> {
         self.0.iter_mut()
             .enumerate()

@@ -2,27 +2,45 @@ use tile::*;
 use meld::*;
 use rand;
 use mem;
+use std;
 
 pub struct Table {
-    wall: Wall,
-    land: [Land; 4],
-    river: [River; 4]
+    pub wall: Wall,
+    pub lands: [Land; 4],
+    pub rivers: [River; 4]
 }
 
 pub struct Wall {
-    tiles: [Tile; Tile::N],
-    index: usize,
-    dead_index: usize
+    pub tiles: [Tile; Tile::N],
+    pub index: usize,
+    pub ridge: usize
 }
 
 pub struct Land {
-    tiles: Tiles,
-    melds: Vec<Meld>
+    pub tiles: Tiles,
+    pub melds: Vec<Meld>
 }
 
 pub struct River {
-    tiles: Vec<Tile>,
-    riich: usize,
+    pub tiles: Vec<Tile>,
+    pub riichi: usize,
+}
+
+impl Table {
+    pub fn new() -> Self {
+        Table {
+            wall : Wall::new(),
+            lands : [Land::new(), Land::new(), Land::new(), Land::new()],
+            rivers : [River::new(), River::new(), River::new(), River::new()]
+        }
+    }
+    pub fn shuffle_tiles(&mut self) {
+        for i in 0..4 {
+            self.lands[i].clear();
+            self.rivers[i].clear();
+        }
+        self.wall.shuffle();
+    }
 }
 
 impl Wall {
@@ -32,7 +50,7 @@ impl Wall {
         let mut w = Wall {
             tiles: [Tile::from_id(0); Tile::N],
             index: 0,
-            dead_index: 0,
+            ridge: 0,
         };
         for i in 0..Tile::N {
             w.tiles[i] = Tile::from_id(i);
@@ -55,10 +73,10 @@ impl Wall {
     pub fn rest(&self) -> usize {
         Self::sub(
             self.index, Self::add(
-                self.dead_index, Self::N_DEAD_WALL))
+                self.ridge, Self::N_DEAD_WALL))
     }
 
-    pub fn next_back(&mut self) -> Option<Tile> {
+    pub fn draw(&mut self) -> Option<Tile> {
         if self.rest() > 0 {
             self.index = Self::sub(self.index, 1);
             Some(self.tiles[self.index])
@@ -67,10 +85,10 @@ impl Wall {
         }
     }
 
-    pub fn next(&mut self) -> Option<Tile> {
+    pub fn draw_ridge(&mut self) -> Option<Tile> {
         if self.rest() > 0 {
-            let i = self.index;
-            self.index = Self::add(self.index, 1);
+            let i = self.ridge;
+            self.ridge = Self::add(self.ridge, 1);
             Some(self.tiles[i])
         } else {
             None
@@ -103,14 +121,24 @@ impl Land {
     pub fn extract(&mut self, figure: Figure) -> Option<Tile> {
         self.tiles.extract(figure)
     }
+    pub fn clear(&mut self) {
+        self.tiles.clear()
+    }
 }
 
 impl River {
+    pub fn new() -> Self {
+        River {
+            tiles: Vec::new(),
+            riichi: std::usize::MAX,
+        }
+    }
     pub fn add(&mut self, tile: Tile) {
         self.tiles.push(tile)
     }
-    pub fn reset(&mut self) {
-        self.tiles = Vec::new();
+    pub fn clear(&mut self) {
+        self.tiles.clear();
+        self.riichi = std::usize::MAX;
     }
 }
 

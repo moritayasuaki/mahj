@@ -19,6 +19,7 @@ use io::{Write, Read, BufRead};
 mod tile;
 mod meld;
 mod table;
+mod game;
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 struct Flís(u8);
