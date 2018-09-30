@@ -85,7 +85,7 @@ impl Rivers {
     pub fn get_vec(&self, seat: Wind) -> Vec<DiscardedTile> {
         self.tiles.iter().filter(|dtile| dtile.discarded_by() == seat).cloned().collect()
     }
-    pub fn discard(&mut self, seat: Wind, tile: Tile) {
+    pub fn add(&mut self, seat: Wind, tile: Tile) {
         let i = self.index;
         self.index = i + 1;
         self.tiles[i] = DiscardedTile::from_tile_seat(tile, seat)
@@ -153,9 +153,67 @@ impl Table {
         self.wall.shuffle();
     }
     pub fn break_tiles(&mut self, dice: usize) {
+        self.wall.index = dice * 32;
         self.wall.ridge = dice * 32;
     }
+    pub fn draw_stacks(&mut self) -> [Tile; 4] {
+        [self.wall.next_back().unwrap(), self.wall.next_back().unwrap(), self.wall.next_back().unwrap(), self.wall.next_back().unwrap()]
+    }
+    pub fn draw_tile(&mut self) -> Option<Tile> {
+        self.wall.next_back()
+    }
+    pub fn draw_replacement(&mut self) -> Option<Tile> {
+        self.wall.next()
+    }
+    pub fn seat(&mut self, wind: Wind) -> Seat {
+        Seat {
+            wind,
+            land: self.lands.get_mut(wind),
+            river: &mut self.rivers,
+            wall: &mut self.wall,
+        }
+    }
 }
+
+pub struct Seat<'a> {
+    wind: Wind,
+    land: &'a mut Land,
+    river: &'a mut Rivers,
+    wall: &'a mut Wall,
+}
+
+impl<'a> Seat<'a> {
+    pub fn take_tile(&mut self, tile: Tile) {
+        self.land.add(tile)
+    }
+    pub fn take_stacks(&mut self, stacks: [Tile; 4]) {
+        for &tile in stacks.iter() {
+            self.land.add(tile)
+        }
+    }
+    pub fn discard_figure(&mut self, figure: Figure) -> bool {
+        if let Some(tile) = self.land.extract(figure) {
+            self.put_river(tile);
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn discard_tile(&mut self, tile: Tile) -> bool {
+        if self.land.has(tile) {
+            self.land.del(tile);
+            self.put_river(tile);
+            true
+        } else {
+            false
+        }
+    }
+    pub fn put_river(&mut self, tile: Tile) {
+        self.river.add(self.wind, tile)
+    }
+}
+
 
 impl Wall {
     pub const N_DEAD_WALL: usize = Tile::N;
@@ -184,23 +242,26 @@ impl Wall {
         }
     }
 
-    pub fn rest(&self) -> usize {
-        Self::sub(
-            self.index, Self::add(
-                self.ridge, Self::N_DEAD_WALL))
+    pub fn len(&self) -> usize {
+        if self.index == self.ridge {
+            Tile::N
+        } else {
+            Self::sub(self.index, self.ridge)
+        }
     }
 
-    pub fn draw(&mut self) -> Option<Tile> {
-        if self.rest() > 0 {
+    pub fn next_back(&mut self) -> Option<Tile> {
+        if self.len() > Self::N_DEAD_WALL {
             self.index = Self::sub(self.index, 1);
-            Some(self.tiles[self.index])
+            let i = self.index;
+            Some(self.tiles[i])
         } else {
             None
         }
     }
 
-    pub fn draw_ridge(&mut self) -> Option<Tile> {
-        if self.rest() > 0 {
+    pub fn next(&mut self) -> Option<Tile> {
+        if self.len() > Self::N_DEAD_WALL {
             let i = self.ridge;
             self.ridge = Self::add(self.ridge, 1);
             Some(self.tiles[i])
@@ -239,6 +300,9 @@ impl Land {
     }
     pub fn extract(&mut self, figure: Figure) -> Option<Tile> {
         self.tiles.extract(figure)
+    }
+    pub fn has(&self, tile: Tile) -> bool {
+        self.tiles.has(tile)
     }
     pub fn clear(&mut self) {
         self.tiles.clear()

@@ -127,6 +127,10 @@ impl Tiles {
         let id = t.id();
         (self.0)[id / 64] &= !(1 << (id % 64));
     }
+    pub fn has(&self, t: Tile) -> bool {
+        let id = t.id();
+        ((self.0)[id / 64] & (1 << (id % 64))) != 0
+    }
     pub fn extract(&mut self, f: Figure) -> Option<Tile> {
         let id = f.id() * 4;
         let s = ((self.0)[id/64] >> (id % 64)) & 0xf;
