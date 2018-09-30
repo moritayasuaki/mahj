@@ -5,7 +5,7 @@ use mem;
 use std;
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
-pub struct Wind(pub u8);
+pub struct Wind(u8);
 
 pub const EAST: Wind = Wind(0);
 
@@ -70,14 +70,14 @@ impl DiscardedTile {
     }
 }
 
-pub struct Rivers2 {
+pub struct Rivers {
     pub tiles: [DiscardedTile; 90],
     pub index: usize
 }
 
-impl Rivers2 {
+impl Rivers {
     pub fn new() -> Self {
-        Rivers2 {
+        Rivers {
             tiles: [DiscardedTile::from_raw(0usize); 90],
             index: 0
         }
@@ -85,19 +85,36 @@ impl Rivers2 {
     pub fn get_vec(&self, seat: Wind) -> Vec<DiscardedTile> {
         self.tiles.iter().filter(|dtile| dtile.discarded_by() == seat).cloned().collect()
     }
+    pub fn discard(&mut self, seat: Wind, tile: Tile) {
+        let i = self.index;
+        self.index = i + 1;
+        self.tiles[i] = DiscardedTile::from_tile_seat(tile, seat)
+    }
     pub fn clear(&mut self) {
         self.index = 0
     }
-}
-
-pub struct River {
-    pub tiles: Vec<Tile>,
-    pub riichi: usize,
+    pub fn current_mut(&mut self) -> Option<&mut DiscardedTile> {
+        let i = self.index;
+        if i != 0 {
+            Some(&mut self.tiles[i-1])
+        } else {
+            None
+        }
+    }
+    pub fn current_ref(&self) -> RiverRef {
+        RiverRef(self.index as u16)
+    }
+    pub fn get(&self, river: RiverRef) -> Option<DiscardedTile> {
+        let i = river.0 as usize;
+        if i != 0 {
+            Some(self.tiles[i-1])
+        } else {
+            None
+        }
+    }
 }
 
 pub struct Lands([Land; Wind::N]);
-pub struct Rivers([River; Wind::N]);
-
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub struct RiverRef(u16);
@@ -113,11 +130,12 @@ impl Wind {
     pub fn make_iter() -> impl Iterator<Item=Self> {
         (0..Self::N).map(Self::from_id)
     }
-    pub fn next(self) -> Self {
-        Self::from_id(self.id() + 1)
+    pub fn claimers(self) -> impl Iterator<Item=Self> {
+        let id = self.id();
+        (id+1..id+4).map(Self::from_id)
     }
-    pub fn prev(self) -> Self {
-        Self::from_id(self.id() + 3)
+    pub fn nth(self, offset: usize) -> Self {
+        Self::from_id(self.id() + offset)
     }
 }
 
@@ -227,22 +245,6 @@ impl Land {
     }
 }
 
-impl River {
-    pub fn new() -> Self {
-        River {
-            tiles: Vec::new(),
-            riichi: std::usize::MAX,
-        }
-    }
-    pub fn add(&mut self, tile: Tile) {
-        self.tiles.push(tile)
-    }
-    pub fn clear(&mut self) {
-        self.tiles.clear();
-        self.riichi = std::usize::MAX;
-    }
-}
-
 impl Lands {
     pub fn new() -> Self {
         Lands([Land::new(), Land::new(), Land::new(), Land::new()])
@@ -257,34 +259,3 @@ impl Lands {
         self.0.iter_mut().for_each(Land::clear)
     }
 }
-
-impl Rivers {
-    pub fn new() -> Self {
-        Rivers([River::new(), River::new(), River::new(), River::new()])
-    }
-    pub fn get_mut(&mut self, seat: Wind) -> &mut River {
-        &mut (self.0)[seat.id()]
-    }
-    pub fn get(&self, seat: Wind) -> &River {
-        &(self.0)[seat.id()]
-    }
-    pub fn clear(&mut self) {
-        self.0.iter_mut().for_each(River::clear)
-    }
-}
-
-impl RiverRef {
-    pub fn raw(self) -> usize {
-        self.0 as usize
-    }
-    pub fn make(wind: usize, index: usize) -> RiverRef {
-        RiverRef((wind + index * Wind::N) as u16)
-    }
-    pub fn index(self) -> usize {
-        (self.raw() / Wind::N)
-    }
-    pub fn wind(self) -> Wind {
-        Wind::from_id(self.raw())
-    }
-}
-

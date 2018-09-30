@@ -11,6 +11,23 @@ pub struct Meld {
     robbedfrom: Option<RiverRef>
 }
 
+
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+pub struct Claim(u8);
+
+impl Claim {
+    const N: usize = 4;
+    const MAHJONG: Self = Claim(0);
+    const KONG: Self = Claim(1);
+    const PUNG: Self = Claim(2);
+    const CHOW: Self = Claim(3);
+    pub fn from_id(id: usize) -> Self {
+        Claim((id % Self::N) as u8)
+    }
+    pub fn id(self) -> usize {
+        self.0 as usize
+    }
+}
 impl SuitRanks {
     pub fn tile_count(&self) -> usize {
         self.ranks.count()

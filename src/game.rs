@@ -1,6 +1,7 @@
 use rand;
 use tile::*;
 use table::*;
+use meld::*;
 use failure;
 
 const OK: Result<(), failure::Error> = Ok(());
@@ -40,12 +41,12 @@ pub struct State<'a> {
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum Phase {
-    Draw(Wind),
-    DrawRidge(Wind),
-    ChooseDrawAction(Wind, Tile),
-    ChooseClaimAction(RiverRef),
-    ChooseDiscardTile(Wind),
-    ChooseRobbingKong(RiverRef),
+    Draw(Wind, bool),
+    Meld(Wind, Claim),
+    CollectClaims(),
+    RespondToDraw(Wind, Tile),
+    RespondToDiscard(RiverRef),
+    RespondToClaim(Wind)
 }
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
@@ -143,8 +144,8 @@ pub fn run_hand(sticks: &mut Sticks, round: Wind, dealer: usize, table: &mut Tab
     };
     let finish = loop {
         match phase.step(state)? {
-            Ok(next_phase) => phase = next_phase,
-            Err(finish) => break finish,
+            Step::Phase(next_phase) => phase = next_phase,
+            Step::Finish(finish) => break finish,
         }
     };
     finish.payment(state);
@@ -163,7 +164,6 @@ impl Finish {
     }
     pub fn is_dealer_win(self) -> bool {
         use self::Finish::*;
-        const EAST: Wind = Wind(0);
         match self {
             WinBySelfDraw(EAST, ..) | WinByDiscard(EAST, ..) => true,
             _ => false
@@ -177,36 +177,107 @@ impl Finish {
     }
 }
 
-impl Phase {
-    pub fn new() -> Phase {
-        Phase::Draw(EAST)
-    }
+pub enum Step {
+    Phase(Phase),
+    Finish(Finish)
+}
 
-    pub fn step<'a>(self, state: &mut State<'a>) -> Result<Result<Self, Finish>, failure::Error> {
+impl Step {
+    pub fn phase(phase: Phase) -> Self {
+        Step::Phase(phase)
+    }
+    pub fn finish(finish: Finish) -> Self {
+        Step::Finish(finish)
+    }
+}
+
+impl From<Phase> for Step {
+    fn from(phase: Phase) -> Self {
+        Step::Phase(phase)
+    }
+}
+
+impl From<Finish> for Step {
+    fn from(finish: Finish) -> Self {
+        Step::Finish(finish)
+    }
+}
+
+impl<'a> State<'a> {
+    pub fn draw(&mut self, seat: Wind, ridge: bool) -> Result<Step, failure::Error> {
+        let o = if ridge {
+            self.table.wall.draw_ridge()
+        } else {
+            self.table.wall.draw()
+        };
+        if let Some(tile) = o {
+            Ok(Phase::RespondToDraw(seat, tile).into())
+        } else {
+            Ok(Finish::ExaustiveDraw.into())
+        }
+    }
+    pub fn meld(&mut self, seat: Wind, claim: Claim) -> Result<Step, failure::Error> {
+        let _ = (seat, claim);
+        unimplemented!()
+    }
+    pub fn respond_to_draw(&mut self, seat: Wind, tile: Tile) -> Result<Step, failure::Error> {
         use self::Phase::*;
-        match self {
-            Draw(seat) => Self::draw(seat, state),
-            DrawRidge(seat) => Self::draw_ridge(seat, state),
+        use self::ResponseToDraw::*;
+        let _ = tile;
+        match ResponseToDraw::choose()? {
+            Discard(tile) => {
+                self.table.rivers.discard(seat, tile);
+                let r = self.table.rivers.current_ref();
+                Ok(RespondToDiscard(r).into())
+            },
+            ConcealedKong(tile) => {
+                let _ = tile;
+                Ok(RespondToClaim(seat).into())
+            },
             _ => unimplemented!()
         }
     }
-    pub fn draw(seat: Wind, state: &mut State) -> Result<Result<Self, Finish>, failure::Error> {
+    pub fn collect_claims(&mut self) -> Result<Step, failure::Error> {
         use self::Phase::*;
-        if let Some(tile) = state.table.wall.draw() {
-            Ok(Ok(ChooseDrawAction(seat, tile)))
+        let discarder = self.table.rivers.current_mut().expect("no one discarded").discarded_by();
+        let mut claims = Claims::collect(discarder)?;
+        if let Some(ClaimBy{nth, claim}) = claims.next() {
+            let claimer = discarder.nth(nth as usize);
+            Ok(Meld(claimer, claim).into())
         } else {
-            Ok(Err(Finish::ExaustiveDraw))
+            let drawer = discarder.nth(1);
+            Ok(Draw(drawer, false).into())
         }
     }
-    pub fn draw_ridge(seat: Wind, state: &mut State) -> Result<Result<Self, Finish>, failure::Error> {
+    pub fn respond_to_claim(&mut self, seat: Wind) -> Result<Step, failure::Error> {
         use self::Phase::*;
-        if let Some(tile) = state.table.wall.draw_ridge() {
-            Ok(Ok(ChooseDrawAction(seat, tile)))
-        } else {
-            Ok(Err(Finish::ExaustiveDraw))
+        use self::ResponseToClaim::*;
+        match ResponseToClaim::choose()? {
+            Discard(tile) => {
+                self.table.rivers.discard(seat, tile);
+                let r = self.table.rivers.current_ref();
+                Ok(RespondToDiscard(r).into())
+            }
         }
+    }
+}
+
+impl Phase {
+    pub fn new() -> Phase {
+        Phase::Draw(EAST, false)
     }
 
+    pub fn step<'a>(self, state: &mut State<'a>) -> Result<Step, failure::Error> {
+        use self::Phase::*;
+        match self {
+            Draw(seat, ridge) => state.draw(seat, ridge),
+            Meld(seat, claim) => state.meld(seat, claim),
+            RespondToDraw(seat, tile) => state.respond_to_draw(seat, tile),
+            CollectClaims() => state.collect_claims(),
+            RespondToClaim(seat) => state.respond_to_claim(seat),
+            _ => unimplemented!()
+        }
+    }
 }
 
 pub fn shuffle_dice() -> usize {
@@ -214,9 +285,82 @@ pub fn shuffle_dice() -> usize {
     (r % 6) + 1
 }
 
-
-enum DrawAction {
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+pub enum ResponseToDraw {
     Discard(Tile),
-    Kong(Tile),
+    ConcealedKong(Tile),
     AddingKong(Tile),
+    DaclareReadyHand,
+    Mahjong
+}
+
+impl ResponseToDraw {
+    pub fn choose() -> Result<Self, failure::Error> {
+        unimplemented!()
+    }
+}
+
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+pub enum ResponseToClaim {
+    Discard(Tile)
+}
+
+impl ResponseToClaim {
+    pub fn choose() -> Result<Self, failure::Error> {
+        unimplemented!()
+    }
+}
+
+
+
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+pub struct ClaimBy{
+    claim: Claim,
+    nth: usize
+}
+
+pub struct Claims(u16);
+
+impl Claims {
+    pub fn new() -> Self {
+        Claims(0)
+    }
+    pub fn collect(discarder: Wind) -> Result<Self, failure::Error> {
+        let _ = discarder;
+        unimplemented!()
+    }
+    pub fn add(&mut self, claimby: ClaimBy) {
+        let ClaimBy{claim, nth} = claimby;
+        self.0 |= 0o1 << (3 * claim.id() + nth - 1);
+    }
+    pub fn empty(&self) -> bool {
+        self.0 == 0
+    }
+    pub fn next(&mut self) -> Option<ClaimBy> {
+        if !self.empty() {
+            let t = self.0;
+            let i = t.trailing_zeros() as usize;
+            self.0 = t & (t-1);
+            let claim = Claim::from_id(i / 3);
+            let nth = i % 3 + 1;
+            Some(ClaimBy{claim, nth})
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Debug,Copy,Clone,PartialEq,Eq)]
+pub enum ResponseToDiscard {
+    Mahjong,
+    Kong,
+    Pung,
+    Chow,
+    Through,
+}
+
+impl ResponseToDiscard {
+    pub fn choose() -> Result<Self, failure::Error> {
+        unimplemented!()
+    }
 }

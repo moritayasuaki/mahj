@@ -50,6 +50,10 @@ impl Figure {
 
 impl Suit {
     pub const N: usize = 4;
+    pub const CIRCLE: Self = Suit(0);
+    pub const BAMBOO: Self = Suit(1);
+    pub const CHARA: Self = Suit(2);
+    pub const HOUNOR: Self = Suit(3);
     pub fn id(&self) -> usize {
         self.0 as usize
     }
