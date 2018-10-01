@@ -28,6 +28,20 @@ impl Claim {
         self.0 as usize
     }
 }
+
+impl Claim {
+    pub fn parse(s: &str) -> Result<Self, failure::Error> {
+        let tokens: Vec<&str> = s.split_whitespace().collect();
+        match tokens.as_slice() {
+            ["Mahjong"] => Ok(Claim::MAHJONG),
+            ["Kong"] => Ok(Claim::KONG),
+            ["Pung"] => Ok(Claim::PUNG),
+            ["Chow"] => Ok(Claim::CHOW),
+            _ =>  Err(failure::err_msg(format!("parse error"))),
+        }
+    }
+}
+
 impl SuitRanks {
     pub fn tile_count(&self) -> usize {
         self.ranks.count()

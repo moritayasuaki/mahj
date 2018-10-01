@@ -287,17 +287,7 @@ pub enum Choice {
     Mahjong
 }
 
-impl From<Choice> for Result<Choice, failure::Error> {
-    fn from(choice: Choice) -> Self {
-        Ok(choice)
-    }
-}
-
 impl Choice {
-    pub fn discard(_tile: Tile) {
-    }
-    pub fn riichi(_tile:Tile) {
-    }
     pub fn parse(s: &str) -> Result<Self, failure::Error> {
         let tokens: Vec<&str> = s.split_whitespace().collect();
         match tokens.as_slice() {
@@ -311,6 +301,8 @@ impl Choice {
         }
     }
 }
+
+
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub struct ClaimBy{
