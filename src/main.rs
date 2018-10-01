@@ -75,8 +75,8 @@ impl FlísTýpe {
         '🀇','🀈','🀉','🀊','🀋','🀌','🀍','🀎','🀏',
         '🀐','🀑','🀒','🀓','🀔','🀕','🀖','🀗','🀘',
         '🀙','🀚','🀛','🀜','🀝','🀞','🀟','🀠','🀡',
-        '🀀','🀁','🀂','🀃',
-        '🀄','🀅','🀆'];
+        '🀀','🀁','🀂','🀃','🀄','🀅', '🀆'];
+
     const _MYNT_BILINU: ops::Range<usize> = 0..9;
     const _BAMBUS_BILINU: ops::Range<usize> = 9..18;
     const _HRINGUR_BILINU: ops::Range<usize> = 18..27;

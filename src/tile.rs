@@ -28,6 +28,11 @@ impl Tile {
 
 impl Figure {
     pub const N: usize = 34;
+    const CHARS: [char; Self::N] = [
+        '🀇','🀈','🀉','🀊','🀋','🀌','🀍','🀎','🀏',
+        '🀐','🀑','🀒','🀓','🀔','🀕','🀖','🀗','🀘',
+        '🀙','🀚','🀛','🀜','🀝','🀞','🀟','🀠','🀡',
+        '🀀','🀁','🀂','🀃','🀄','🀅', '🀆'];
     pub fn id(&self) -> usize {
         self.0 as usize
     }
@@ -43,16 +48,26 @@ impl Figure {
     pub fn suit(&self) -> Suit {
         Suit((self.id() / 9) as u8)
     }
-    pub fn rank(&self) -> Suit {
-        Suit((self.id() % 9) as u8)
+    pub fn rank(&self) -> Rank {
+        Rank((self.id() % 9) as u8)
+    }
+    pub fn parse(s: &str) -> Option<Self> {
+        s.chars().next().and_then(|c| 
+            Self::CHARS.iter().enumerate().find_map(|(i, &t)|
+                if t == c {
+                    Some(Figure::from_id(i))
+                } else {
+                    None
+                })
+        )
     }
 }
 
 impl Suit {
     pub const N: usize = 4;
-    pub const CIRCLE: Self = Suit(0);
+    pub const CHARA: Self = Suit(0);
     pub const BAMBOO: Self = Suit(1);
-    pub const CHARA: Self = Suit(2);
+    pub const CIRCLE: Self = Suit(2);
     pub const HOUNOR: Self = Suit(3);
     pub fn id(&self) -> usize {
         self.0 as usize
@@ -145,6 +160,13 @@ impl Tiles {
  }
 
 impl Figures {
+    const N: usize = 34;
+    const CHARS: [char; Self::N] = [
+        '🀇','🀈','🀉','🀊','🀋','🀌','🀍','🀎','🀏',
+        '🀐','🀑','🀒','🀓','🀔','🀕','🀖','🀗','🀘',
+        '🀙','🀚','🀛','🀜','🀝','🀞','🀟','🀠','🀡',
+        '🀀','🀁','🀂','🀃',
+        '🀄','🀅','🀆'];
     pub fn new() -> Self {
         Figures([Ranks::new(); 4])
     }

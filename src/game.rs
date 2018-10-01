@@ -3,6 +3,8 @@ use tile::*;
 use table::*;
 use meld::*;
 use failure;
+use std;
+use std::io::{BufRead, Write};
 
 const OK: Result<(), failure::Error> = Ok(());
 
@@ -189,33 +191,16 @@ impl Step {
     }
 }
 
-impl From<Phase> for Step {
-    fn from(phase: Phase) -> Self {
-        Step::Phase(phase)
-    }
-}
-
-impl From<Finish> for Step {
-    fn from(finish: Finish) -> Self {
-        Step::Finish(finish)
-    }
-}
-
-impl From<Step> for Result<Step, failure::Error> {
-    fn from(step: Step) -> Self {
-        Ok(step)
-    }
-}
 
 impl From<Phase> for Result<Step, failure::Error> {
     fn from(phase: Phase) -> Self {
-        Ok(phase.into())
+        Ok(Step::Phase(phase))
     }
 }
 
 impl From<Finish> for Result<Step, failure::Error> {
     fn from(finish: Finish) -> Self {
-        Ok(finish.into())
+        Ok(Step::Finish(finish))
     }
 }
 
@@ -239,11 +224,12 @@ impl<'a> State<'a> {
         unimplemented!()
     }
     pub fn choose(&mut self, seat: Wind, tile: Tile) -> Result<Step, failure::Error> {
-        use self::Choice::*;
         let _ = tile;
-        match Choice::choose()? {
-            Discard(tile) => {
-                if self.table.seat(seat).discard_tile(tile) {
+        let stdin = std::io::stdin();
+        let line = stdin.lock().lines().next().unwrap()?;
+        match Choice::parse(&line)? {
+            Choice::Discard(fig) => {
+                if self.table.seat(seat).discard_figure(fig) {
                     Phase::Claims().into()
                 } else {
                     Phase::Choose(seat, tile).into()
@@ -257,9 +243,9 @@ impl<'a> State<'a> {
         let mut claims = Claims::collect(seat)?;
         if let Some(ClaimBy{nth, claim}) = claims.next() {
             let claimer = seat.nth(nth as usize);
-            Ok(Phase::Meld(claimer, claim).into())
+            Phase::Meld(claimer, claim).into()
         } else {
-            Ok(Phase::Draw(seat.nth(1)).into())
+            Phase::Draw(seat.nth(1)).into()
         }
     }
     pub fn discard(&mut self, seat: Wind) -> Result<Step, failure::Error> {
@@ -294,17 +280,35 @@ pub fn shuffle_dice() -> usize {
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum Choice {
-    Discard(Tile),
-    ConcealedKong(Tile),
-    AddingKong(Tile),
-    DaclareReadyHand,
-    NineTerminal,
+    Discard(Figure),
+    Riichi(Figure),
+    Kong(Figure),
+    NineTerminals,
     Mahjong
 }
 
+impl From<Choice> for Result<Choice, failure::Error> {
+    fn from(choice: Choice) -> Self {
+        Ok(choice)
+    }
+}
+
 impl Choice {
-    pub fn choose() -> Result<Self, failure::Error> {
-        unimplemented!()
+    pub fn discard(_tile: Tile) {
+    }
+    pub fn riichi(_tile:Tile) {
+    }
+    pub fn parse(s: &str) -> Result<Self, failure::Error> {
+        let tokens: Vec<&str> = s.split_whitespace().collect();
+        match tokens.as_slice() {
+            ["Discard", arg] => Figure::parse(arg).map(|fig| Choice::Discard(fig)).ok_or(failure::err_msg("hoge")),
+            ["Riichi", arg] => Figure::parse(arg).map(|fig| Choice::Riichi(fig)).ok_or(failure::err_msg("hoge")),
+            ["Kong", arg] => Figure::parse(arg).map(|fig| Choice::Kong(fig)).ok_or(failure::err_msg("hoge")),
+            ["NineTerminals"] => Ok(Choice::NineTerminals),
+            ["Mahjong"] => Ok(Choice::Mahjong),
+            command if command.len() > 0 => Err(failure::err_msg(format!("{}: No such command", command[0]))),
+            _ =>  Err(failure::err_msg(format!("parse error"))),
+        }
     }
 }
 
@@ -320,8 +324,8 @@ impl Claims {
     pub fn new() -> Self {
         Claims(0)
     }
-    pub fn collect(discarder: Wind) -> Result<Self, failure::Error> {
-        let _ = discarder;
+    pub fn collect(seat: Wind) -> Result<Self, failure::Error> {
+        let _ = seat;
         unimplemented!()
     }
     pub fn add(&mut self, claimby: ClaimBy) {
@@ -344,7 +348,6 @@ impl Claims {
         }
     }
 }
-
 
 pub struct Discard(Tile);
 impl Discard {
