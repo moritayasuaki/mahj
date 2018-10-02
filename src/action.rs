@@ -33,20 +33,6 @@ impl Choice {
         } else {
             Err(failure::err_msg("No command"))
         }
-        /*
-        match tokens.as_slice() {
-            ["NineTerminals"] => Ok(Choice::NineTerminals),
-            ["Mahjong"] => Ok(Choice::Mahjong),
-            ["Riichi", arg] => Figure::parse(arg).map(|fig| Choice::Riichi(fig)).ok_or(failure::err_msg("hoge")),
-            ["Discard", arg] => Figure::parse(arg).map(|fig| Choice::Discard(fig)).ok_or(failure::err_msg("hoge")),
-            ["Kong", arg] => Figure::parse(arg).map(|fig| Choice::Kong(fig)).ok_or(failure::err_msg("hoge")),
-            other => if other.len() > 0 {
-                Err(failure::err_msg(format!("{}: No such command", other[0])))
-            } else {
-                Err(failure::err_msg("Parse error"))
-            }
-        }
-        */
     }
 }
 
