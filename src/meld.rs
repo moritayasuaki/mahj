@@ -46,8 +46,8 @@ impl SuitRanks {
         self.tile_count() == 2 && !self.ranks.filter_ryanmen().is_empty()
     }
 
-    pub fn is_eye(&self) -> bool {
-        self.tile_count() == 2 && !self.ranks.filter_eye().is_empty()
+    pub fn is_pair(&self) -> bool {
+        self.tile_count() == 2 && !self.ranks.filter_pair().is_empty()
     }
 }
 

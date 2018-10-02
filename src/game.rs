@@ -38,7 +38,7 @@ pub struct State<'a> {
     table: &'a mut Table,
     sticks: &'a mut Sticks,
     round: Wind,
-    dice: (usize, usize),
+    dice: [usize; 2],
     dealer: usize
 }
 
@@ -117,24 +117,32 @@ pub fn run_hands(sticks: &mut Sticks, round: Wind, dealer: usize) -> Result<(), 
     Ok(())
 }
 
-pub fn init_table(table: &mut Table, dice: (usize, usize)) {
+pub fn init_table(table: &mut Table) -> [usize; 2] {
     table.shuffle_tiles();
-    table.break_tiles(dice.0 + dice.1);
+    let dice = [shuffle_dice(), shuffle_dice()];
+    table.break_tiles(dice.iter().sum());
+
+    let mut draw = |seat| {
+        println!("{}", table.wall.len());
+        let tile = table.draw_tile().expect("drawing for building table");
+        table.seat(seat).take_tile(tile);
+    };
+    
     for _ in 0..3 {
         for seat in Wind::make_iter() {
-            let stacks = table.draw_stacks();
-            table.seat(seat).take_stacks(stacks);
+            for _ in 0..4 {
+                draw(seat)
+            }
         }
     }
     for seat in Wind::make_iter() {
-        let tile = table.draw_tile().unwrap();
-        table.seat(seat).take_tile(tile);
+        draw(seat)
     }
+    dice
 }
 
 pub fn run_hand(sticks: &mut Sticks, round: Wind, dealer: usize, table: &mut Table) -> Result<bool, failure::Error> {
-    let dice = (shuffle_dice(), shuffle_dice());
-    init_table(table, dice);
+    let dice = init_table(table);
     let mut phase = Phase::new();
     let state = &mut State {
         dice,

@@ -1,8 +1,8 @@
+use std;
 use tile::*;
 use meld::*;
 use rand;
-use mem;
-use std;
+use std::mem;
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub struct Wind(u8);
@@ -153,12 +153,9 @@ impl Table {
         self.wall.shuffle();
     }
     pub fn break_tiles(&mut self, dice: usize) {
-        self.wall.index = dice * 32;
-        self.wall.ridge = dice * 32;
+        self.wall.make_break(dice * 32 % Tile::N)
     }
-    pub fn draw_stacks(&mut self) -> [Tile; 4] {
-        [self.wall.next_back().unwrap(), self.wall.next_back().unwrap(), self.wall.next_back().unwrap(), self.wall.next_back().unwrap()]
-    }
+
     pub fn draw_tile(&mut self) -> Option<Tile> {
         self.wall.next_back()
     }
@@ -186,11 +183,6 @@ impl<'a> Seat<'a> {
     pub fn take_tile(&mut self, tile: Tile) {
         self.land.add(tile)
     }
-    pub fn take_stacks(&mut self, stacks: [Tile; 4]) {
-        for &tile in stacks.iter() {
-            self.land.add(tile)
-        }
-    }
     pub fn discard_figure(&mut self, figure: Figure) -> bool {
         if let Some(tile) = self.land.extract(figure) {
             self.put_river(tile);
@@ -216,7 +208,7 @@ impl<'a> Seat<'a> {
 
 
 impl Wall {
-    pub const N_DEAD_WALL: usize = Tile::N;
+    pub const N_DEAD_WALL: usize = 14;
 
     pub fn new() -> Self {
         let mut w = Wall {
@@ -231,7 +223,11 @@ impl Wall {
     }
 
     fn add(a: usize, b: usize) -> usize {
-        (a + b) % Tile::N
+        if a + b >= Tile::N {
+            a + b - Tile::N
+        } else {
+            a + b
+        }
     }
 
     fn sub(a: usize, b: usize) -> usize {
@@ -279,7 +275,7 @@ impl Wall {
         }
     }
 
-    pub fn breaking(&mut self, pos: usize) {
+    pub fn make_break(&mut self, pos: usize) {
         self.index = pos;
         self.ridge = pos;
     }

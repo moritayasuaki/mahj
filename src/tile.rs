@@ -220,7 +220,7 @@ impl Ranks {
         let r = r & 0o111111111;
         Ranks(r)
     }
-    pub fn filter_eye(self) -> Self {
+    pub fn filter_pair(self) -> Self {
         let r = self.0;
         let r = (r + 0o222222222) >> 2;
         let r = r & 0o111111111;
