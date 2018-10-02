@@ -22,6 +22,7 @@ mod tile;
 mod meld;
 mod table;
 mod game;
+mod action;
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 struct Flís(u8);
