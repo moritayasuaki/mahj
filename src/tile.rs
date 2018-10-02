@@ -51,15 +51,18 @@ impl Figure {
     pub fn rank(&self) -> Rank {
         Rank((self.id() % 9) as u8)
     }
+    pub fn show(&self) -> String {
+        Self::CHARS[self.id()].to_string()
+    }
     pub fn parse(s: &str) -> Option<Self> {
-        s.chars().next().and_then(|c| 
-            Self::CHARS.iter().enumerate().find_map(|(i, &t)|
-                if t == c {
-                    Some(Figure::from_id(i))
-                } else {
-                    None
-                })
-        )
+        if s.len() == 1 {
+            let c = s.chars().next().unwrap();
+            Self::CHARS.iter()
+                .position(|&t| t == c)
+                .map(Figure::from_id)
+        } else {
+            None
+        }
     }
 }
 

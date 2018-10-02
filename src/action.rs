@@ -15,6 +15,25 @@ pub enum Choice {
 impl Choice {
     pub fn parse(s: &str) -> Result<Self, failure::Error> {
         let tokens: Vec<_> = s.split_whitespace().collect();
+        let mut figure_arg = |f: fn(Figure) -> Choice| {
+            tokens.get(1)
+                .and_then(|&t| Figure::parse(t))
+                .map(f)
+                .ok_or(failure::err_msg("No argument"))
+        };
+        if let Some(&t) = tokens.get(0) {
+            match t {
+                "NineTerminals" => Ok(Choice::NineTerminals),
+                "Mohjong" => Ok(Choice::Mahjong),
+                "Discard" => figure_arg(Choice::Discard),
+                "Riichi" => figure_arg(Choice::Riichi),
+                "Kong" =>  figure_arg(Choice::Kong),
+                command => Err(failure::err_msg(format!("No such command: {}", command)))
+            }
+        } else {
+            Err(failure::err_msg("No command"))
+        }
+        /*
         match tokens.as_slice() {
             ["NineTerminals"] => Ok(Choice::NineTerminals),
             ["Mahjong"] => Ok(Choice::Mahjong),
@@ -27,6 +46,7 @@ impl Choice {
                 Err(failure::err_msg("Parse error"))
             }
         }
+        */
     }
 }
 
