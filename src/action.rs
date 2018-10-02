@@ -14,15 +14,18 @@ pub enum Choice {
 
 impl Choice {
     pub fn parse(s: &str) -> Result<Self, failure::Error> {
-        let tokens: Vec<&str> = s.split_whitespace().collect();
+        let tokens: Vec<_> = s.split_whitespace().collect();
         match tokens.as_slice() {
             ["NineTerminals"] => Ok(Choice::NineTerminals),
             ["Mahjong"] => Ok(Choice::Mahjong),
             ["Riichi", arg] => Figure::parse(arg).map(|fig| Choice::Riichi(fig)).ok_or(failure::err_msg("hoge")),
             ["Discard", arg] => Figure::parse(arg).map(|fig| Choice::Discard(fig)).ok_or(failure::err_msg("hoge")),
             ["Kong", arg] => Figure::parse(arg).map(|fig| Choice::Kong(fig)).ok_or(failure::err_msg("hoge")),
-            command if command.len() > 0 => Err(failure::err_msg(format!("{}: No such command", command[0]))),
-            _ =>  Err(failure::err_msg(format!("parse error"))),
+            other => if other.len() > 0 {
+                Err(failure::err_msg(format!("{}: No such command", other[0])))
+            } else {
+                Err(failure::err_msg("Parse error"))
+            }
         }
     }
 }
