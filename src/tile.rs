@@ -55,8 +55,9 @@ impl Figure {
         Self::CHARS[self.id()].to_string()
     }
     pub fn parse(s: &str) -> Option<Self> {
-        if s.len() == 1 {
-            let c = s.chars().next().unwrap();
+        let mut cs = s.chars();
+        if cs.clone().count() == 1 {
+            let c = cs.next().unwrap();
             Self::CHARS.iter()
                 .position(|&t| t == c)
                 .map(Figure::from_id)
@@ -64,6 +65,11 @@ impl Figure {
             None
         }
     }
+}
+
+#[test]
+fn parse_test() {
+    assert_eq!(Figure::parse("🀞"), Some(Figure::from_suitrank(Suit::CIRCLE, Rank::from_id(5))));
 }
 
 impl Suit {

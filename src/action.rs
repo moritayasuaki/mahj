@@ -16,10 +16,9 @@ impl Choice {
     pub fn parse(s: &str) -> Result<Self, failure::Error> {
         let tokens: Vec<_> = s.split_whitespace().collect();
         let mut figure_arg = |f: fn(Figure) -> Choice| {
-            tokens.get(1)
-                .and_then(|&t| Figure::parse(t))
-                .map(f)
-                .ok_or(failure::err_msg("No argument"))
+            let expr = tokens.get(1).ok_or(failure::err_msg("No argument"))?;
+            let fig = Figure::parse(expr).ok_or(failure::err_msg("Parse error"))?;
+            Ok(f(fig))
         };
         if let Some(&t) = tokens.get(0) {
             match t {

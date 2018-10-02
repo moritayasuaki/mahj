@@ -180,6 +180,15 @@ pub struct Seat<'a> {
 }
 
 impl<'a> Seat<'a> {
+    pub fn draw_show(&mut self, drawn: Tile) -> String {
+        let mut s = String::new();
+        let mut tiles = self.land.tiles.clone();
+        while let Some(tile) = tiles.next() {
+            s.push_str(&format!("{}", tile.figure().show()));
+        }
+        s.push_str(&format!(" {}", drawn.figure().show()));
+        s
+    }
     pub fn take_tile(&mut self, tile: Tile) {
         self.land.add(tile)
     }

@@ -7,8 +7,6 @@ use failure;
 use std;
 use std::io::{BufRead, Write};
 
-const OK: Result<(), failure::Error> = Ok(());
-
 pub struct Sticks {
     pub score: [isize; 4],
     pub burst_flags: u8,
@@ -123,7 +121,6 @@ pub fn init_table(table: &mut Table) -> [usize; 2] {
     table.break_tiles(dice.iter().sum());
 
     let mut draw = |seat| {
-        println!("{}", table.wall.len());
         let tile = table.draw_tile().expect("drawing for building table");
         table.seat(seat).take_tile(tile);
     };
@@ -233,7 +230,7 @@ impl<'a> State<'a> {
         unimplemented!()
     }
     pub fn choose(&mut self, seat: Wind, tile: Tile) -> Result<Step, failure::Error> {
-        let _ = tile;
+        println!("{}", self.table.seat(seat).draw_show(tile));
         let stdin = std::io::stdin();
         let line = stdin.lock().lines().next().unwrap()?;
         match Choice::parse(&line)? {
@@ -241,14 +238,14 @@ impl<'a> State<'a> {
                 if self.table.seat(seat).discard_figure(fig) {
                     Phase::Claims().into()
                 } else {
-                    Phase::Choose(seat, tile).into()
+                    Err(failure::err_msg(format!("Can not discard {}", fig.show())))
                 }
             },
             _ => unimplemented!()
         }
     }
     pub fn claims(&mut self) -> Result<Step, failure::Error> {
-        let seat = self.table.rivers.current_mut().expect("no one discarded").discarded_by();
+        let seat = self.table.rivers.current_mut().expect("Tiles not found on river").discarded_by();
         let stdin = std::io::stdin();
         let mut claims = Claims::collect(stdin.lock().lines().take(3).map(|x| x.unwrap()))?;
         if let Some(ClaimBy{nth, claim}) = claims.next() {
