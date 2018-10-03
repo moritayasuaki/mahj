@@ -1,17 +1,15 @@
 use tile::*;
 use table::*;
 
-pub struct SuitRanks{
+pub struct SuitRanks {
     suit: Suit,
     ranks: Ranks
 }
 
 pub struct Meld {
     suitranks: SuitRanks,
-    robbedfrom: Option<RiverRef>
+    robbed_from: Option<usize>
 }
-
-
 
 impl SuitRanks {
     pub fn tile_count(&self) -> usize {
@@ -48,14 +46,5 @@ impl SuitRanks {
 
     pub fn is_pair(&self) -> bool {
         self.tile_count() == 2 && !self.ranks.filter_pair().is_empty()
-    }
-}
-
-impl Meld {
-    pub fn is_conceal(&self) -> bool {
-        self.robbedfrom.is_none()
-    }
-    pub fn is_robbed(&self) -> bool {
-        self.robbedfrom.is_some()
     }
 }

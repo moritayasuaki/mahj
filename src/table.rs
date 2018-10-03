@@ -7,7 +7,6 @@ use std::mem;
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub struct Wind(u8);
 
-pub const EAST: Wind = Wind(0);
 
 pub struct Table {
     pub wall: Wall,
@@ -121,6 +120,10 @@ pub struct RiverRef(u16);
 
 impl Wind {
     pub const N: usize = 4;
+    pub const EAST: Wind = Wind(0);
+    pub const SOUTH: Wind = Wind(1);
+    pub const WEST: Wind = Wind(2);
+    pub const NORTH: Wind = Wind(3);
     pub fn id(self) -> usize {
         self.0 as usize
     }
@@ -136,6 +139,24 @@ impl Wind {
     }
     pub fn nth(self, offset: usize) -> Self {
         Self::from_id(self.id() + offset)
+    }
+    pub fn rightside(self) -> Self {
+        self.nth(1)
+    }
+    pub fn leftside(self) -> Self {
+        self.nth(3)
+    }
+    pub fn otherside(self) -> Self {
+        self.nth(2)
+    }
+    pub fn show(self) -> &'static str {
+        match self {
+            Self::EAST => "東",
+            Self::SOUTH => "南",
+            Self::WEST => "西",
+            Self::NORTH => "北",
+            _ => unreachable!()
+        }
     }
 }
 

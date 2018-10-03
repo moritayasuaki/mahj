@@ -171,7 +171,7 @@ impl Finish {
     pub fn is_dealer_win(self) -> bool {
         use self::Finish::*;
         match self {
-            WinByDraw(EAST, ..) | WinByDiscard(EAST, ..) => true,
+            WinByDraw(Wind::EAST, ..) | WinByDiscard(Wind::EAST, ..) => true,
             _ => false
         }
     }
@@ -252,7 +252,7 @@ impl<'a> State<'a> {
             let claimer = seat.nth(nth as usize);
             Phase::Meld(claimer, claim).into()
         } else {
-            Phase::Draw(seat.nth(1)).into()
+            Phase::Draw(seat.rightside()).into()
         }
     }
     pub fn discard(&mut self, seat: Wind) -> Result<Step, failure::Error> {
@@ -262,7 +262,7 @@ impl<'a> State<'a> {
 
 impl Phase {
     pub fn new() -> Phase {
-        Phase::Draw(EAST)
+        Phase::Draw(Wind::EAST)
     }
 
     pub fn step<'a>(self, state: &mut State<'a>) -> Result<Step, failure::Error> {

@@ -28,11 +28,11 @@ impl Tile {
 
 impl Figure {
     pub const N: usize = 34;
-    const CHARS: [char; Self::N] = [
-        '🀇','🀈','🀉','🀊','🀋','🀌','🀍','🀎','🀏',
-        '🀐','🀑','🀒','🀓','🀔','🀕','🀖','🀗','🀘',
-        '🀙','🀚','🀛','🀜','🀝','🀞','🀟','🀠','🀡',
-        '🀀','🀁','🀂','🀃','🀄','🀅', '🀆'];
+    const STRS: [&'static str; Self::N] = [
+        "🀇","🀈","🀉","🀊","🀋","🀌","🀍","🀎","🀏",
+        "🀐","🀑","🀒","🀓","🀔","🀕","🀖","🀗","🀘",
+        "🀙","🀚","🀛","🀜","🀝","🀞","🀟","🀠","🀡",
+        "🀀","🀁","🀂","🀃","🀄","🀅", "🀆"];
     pub fn id(&self) -> usize {
         self.0 as usize
     }
@@ -51,19 +51,13 @@ impl Figure {
     pub fn rank(&self) -> Rank {
         Rank((self.id() % 9) as u8)
     }
-    pub fn show(&self) -> String {
-        Self::CHARS[self.id()].to_string()
+    pub fn show(&self) -> &'static str {
+        Self::STRS[self.id()]
     }
     pub fn parse(s: &str) -> Option<Self> {
-        let mut cs = s.chars();
-        if cs.clone().count() == 1 {
-            let c = cs.next().unwrap();
-            Self::CHARS.iter()
-                .position(|&t| t == c)
-                .map(Figure::from_id)
-        } else {
-            None
-        }
+        Self::STRS.iter()
+            .position(|t| t == &s)
+            .map(Figure::from_id)
     }
 }
 
