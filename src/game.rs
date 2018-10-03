@@ -230,16 +230,40 @@ impl<'a> State<'a> {
         unimplemented!()
     }
     pub fn choose(&mut self, seat: Wind, tile: Tile) -> Result<Step, failure::Error> {
-        println!("{}", self.table.seat(seat).draw_show(tile));
+        let seat = &mut self.table.seat(seat);
+        println!("{}", seat.show_draw_phase(tile));
         let stdin = std::io::stdin();
         let line = stdin.lock().lines().next().unwrap()?;
         match Choice::parse(&line)? {
             Choice::Discard(fig) => {
-                if self.table.seat(seat).discard_figure(fig) {
+                if seat.discard_figure(fig) {
+                    seat.land.add(tile);
                     Phase::Claims().into()
                 } else {
                     Err(failure::err_msg(format!("Can not discard {}", fig.show())))
                 }
+            },
+            Choice::Through => {
+                seat.discard_tile(tile);
+                Phase::Claims().into()
+            },
+            Choice::Riichi(fig) => {
+                if seat.discard_figure(fig) {
+                    seat.land.add(tile);
+                    Phase::Claims().into()
+                } else {
+                    Err(failure::err_msg(format!("Can not discard {}", fig.show())))
+                }
+            },
+            Choice::ThroughRiichi => {
+                seat.discard_tile(tile);
+                Phase::Claims().into()
+            },
+            Choice::Kong(fig) => {
+                unimplemented!()
+            },
+            Choice::Mahjong => {
+                unimplemented!()
             },
             _ => unimplemented!()
         }
@@ -249,8 +273,12 @@ impl<'a> State<'a> {
         let stdin = std::io::stdin();
         let mut claims = Claims::collect(stdin.lock().lines().take(3).map(|x| x.unwrap()))?;
         if let Some(ClaimBy{nth, claim}) = claims.next() {
-            let claimer = seat.nth(nth as usize);
-            Phase::Meld(claimer, claim).into()
+            if claim != Claim::THROUGH {
+                let claimer = seat.nth(nth as usize);
+                Phase::Meld(claimer, claim).into()
+            } else {
+                Phase::Draw(seat.rightside()).into()
+            }
         } else {
             Phase::Draw(seat.rightside()).into()
         }

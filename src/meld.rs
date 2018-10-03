@@ -22,17 +22,17 @@ impl Meld {
     pub fn from_raw(raw: usize) -> Meld {
         Meld((raw & 0xffffffff) as u32)
     }
-    fn raw(self) -> usize {
+    pub fn raw(self) -> usize {
         self.0 as usize
     }
-    fn suitranks(self) -> SuitRanks {
+    pub fn suitranks(self) -> SuitRanks {
         SuitRanks::from_suitranks(self.suit(), self.ranks())
     }
-    fn suit(self) -> Suit {
-        Suit::from_id((self.raw() >> 20) & 0x3)
+    pub fn suit(self) -> Suit {
+        Suit::from_id((self.raw() >> 18) & 0x3)
     }
-    fn ranks(self) -> Ranks {
-        let r = (self.raw() >> 16) & 0xf;
+    pub fn ranks(self) -> Ranks {
+        let r = (self.raw() >> 16) & 0x3;
         match self.meldtype() {
             MeldType::CHOW => Ranks::from_raw(0o111 << r),
             MeldType::PUNG => Ranks::from_raw(0o3 << r),
@@ -41,13 +41,13 @@ impl Meld {
             _ => unreachable!()
         }
     }
-    fn meldtype(self) -> MeldType {
+    pub fn meldtype(self) -> MeldType {
         MeldType::from_id((self.raw() >> 14) & 0x3)
     }
-    fn robbed_from(self) -> usize {
+    pub fn robbed_from(self) -> usize {
         self.raw() & 0x7f
     }
-    fn added_from(self) -> usize {
+    pub fn added_from(self) -> usize {
         (self.raw() >> 7) & 0x7f
     }
 }

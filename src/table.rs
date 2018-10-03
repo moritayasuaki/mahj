@@ -211,15 +211,15 @@ impl Table {
 }
 
 pub struct Seat<'a> {
-    wind: Wind,
-    land: &'a mut Tiles,
-    river: &'a mut Rivers,
-    wall: &'a mut Wall,
-    meld: &'a mut Melds,
+    pub wind: Wind,
+    pub land: &'a mut Tiles,
+    pub river: &'a mut Rivers,
+    pub wall: &'a mut Wall,
+    pub meld: &'a mut Melds,
 }
 
 impl<'a> Seat<'a> {
-    pub fn draw_show(&mut self, drawn: Tile) -> String {
+    pub fn show_draw_phase(&mut self, drawn: Tile) -> String {
         let mut s = String::new();
         let mut tiles = self.land.clone();
         while let Some(tile) = tiles.next() {

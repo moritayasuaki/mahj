@@ -8,6 +8,8 @@ pub enum Choice {
     Discard(Figure),
     Riichi(Figure),
     Kong(Figure),
+    Through,
+    ThroughRiichi,
     NineTerminals,
     Mahjong
 }
@@ -27,10 +29,12 @@ impl Choice {
                 "Discard" => figure_arg(Choice::Discard, tokens),
                 "Riichi" => figure_arg(Choice::Riichi, tokens),
                 "Kong" =>  figure_arg(Choice::Kong, tokens),
+                "Through" => Ok(Choice::Through),
+                "ThroughRiichi" => Ok(Choice::ThroughRiichi),
                 command => Err(failure::err_msg(format!("No such command: {}", command)))
             }
         } else {
-            Err(failure::err_msg("No command"))
+            Ok(Choice::Through)
         }
     }
 }
@@ -39,11 +43,12 @@ impl Choice {
 pub struct Claim(u8);
 
 impl Claim {
-    const N: usize = 4;
-    const MAHJONG: Self = Claim(0);
-    const KONG: Self = Claim(1);
-    const PUNG: Self = Claim(2);
-    const CHOW: Self = Claim(3);
+    pub const N: usize = 4;
+    pub const MAHJONG: Self = Claim(0);
+    pub const KONG: Self = Claim(1);
+    pub const PUNG: Self = Claim(2);
+    pub const CHOW: Self = Claim(3);
+    pub const THROUGH: Self = Claim(4);
     pub fn from_id(id: usize) -> Self {
         Claim((id % Self::N) as u8)
     }
@@ -54,19 +59,24 @@ impl Claim {
 
 impl Claim {
     pub fn parse(s: &str) -> Result<Self, failure::Error> {
-        let tokens: Vec<&str> = s.split_whitespace().collect();
-        match tokens.as_slice() {
-            ["Mahjong"] => Ok(Claim::MAHJONG),
-            ["Kong"] => Ok(Claim::KONG),
-            ["Pung"] => Ok(Claim::PUNG),
-            ["Chow"] => Ok(Claim::CHOW),
-            _ =>  Err(failure::err_msg(format!("parse error"))),
+        let mut tokens = s.split_whitespace();
+        if let Some(t) = tokens.next() {
+            match t {
+                "Mahjong" => Ok(Claim::MAHJONG),
+                "Kong" => Ok(Claim::KONG),
+                "Pung" => Ok(Claim::PUNG),
+                "Chow" => Ok(Claim::CHOW),
+                "Through" => Ok(Claim::THROUGH),
+                claim =>  Err(failure::err_msg(format!("invalid claim {}", claim))),
+            }
+        } else {
+            Ok(Claim::THROUGH)
         }
     }
 }
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
-pub struct ClaimBy{
+pub struct ClaimBy {
     pub claim: Claim,
     pub nth: usize
 }
