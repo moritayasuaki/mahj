@@ -1,50 +1,53 @@
 use tile::*;
 use table::*;
 
-pub struct SuitRanks {
-    suit: Suit,
-    ranks: Ranks
+#[derive(Copy,Clone,Debug,PartialEq,Eq)]
+pub struct MeldType(u8);
+impl MeldType {
+    const CHOW: Self = MeldType(0);
+    const PUNG: Self = MeldType(1);
+    const KONG: Self = MeldType(2);
+    const ADDED_KONG: Self = MeldType(3);
+    pub fn id(self) -> usize {
+        self.0 as usize
+    }
+    pub fn from_id(id: usize) -> Self{
+        MeldType((id % 4) as u8)
+    }
 }
 
-pub struct Meld {
-    suitranks: SuitRanks,
-    robbed_from: Option<usize>
-}
-
-impl SuitRanks {
-    pub fn tile_count(&self) -> usize {
-        self.ranks.count()
+#[derive(Copy,Clone,Debug,PartialEq,Eq)]
+pub struct Meld(u32);
+impl Meld {
+    pub fn from_raw(raw: usize) -> Meld {
+        Meld((raw & 0xffffffff) as u32)
     }
-
-    pub fn is_chow(&self) -> bool {
-        self.suit.is_numeric() && self.ranks.count() == 3 && !self.ranks.filter_chow().is_empty()
+    fn raw(self) -> usize {
+        self.0 as usize
     }
-
-    pub fn is_pong(&self) -> bool {
-        self.tile_count() == 3 && !self.ranks.filter_chow().is_empty()
+    fn suitranks(self) -> SuitRanks {
+        SuitRanks::from_suitranks(self.suit(), self.ranks())
     }
-
-    pub fn is_kong(&self) -> bool {
-        self.tile_count() == 3 && !self.ranks.filter_chow().is_empty()
+    fn suit(self) -> Suit {
+        Suit::from_id((self.raw() >> 20) & 0x3)
     }
-
-    pub fn is_kanchan(&self) -> bool {
-        self.tile_count() == 2 && !self.ranks.filter_kanchan().is_empty()
+    fn ranks(self) -> Ranks {
+        let r = (self.raw() >> 16) & 0xf;
+        match self.meldtype() {
+            MeldType::CHOW => Ranks::from_raw(0o111 << r),
+            MeldType::PUNG => Ranks::from_raw(0o3 << r),
+            MeldType::KONG => Ranks::from_raw(0o4 << r),
+            MeldType::ADDED_KONG => Ranks::from_raw(0o4 << r),
+            _ => unreachable!()
+        }
     }
-
-    pub fn is_penryan(&self) -> bool {
-        self.tile_count() == 2 && !self.ranks.filter_penryan().is_empty()
+    fn meldtype(self) -> MeldType {
+        MeldType::from_id((self.raw() >> 14) & 0x3)
     }
-
-    pub fn is_penchan(&self) -> bool {
-        self.tile_count() == 2 && !self.ranks.filter_penchan().is_empty()
+    fn robbed_from(self) -> usize {
+        self.raw() & 0x7f
     }
-
-    pub fn is_ryanmen(&self) -> bool {
-        self.tile_count() == 2 && !self.ranks.filter_ryanmen().is_empty()
-    }
-
-    pub fn is_pair(&self) -> bool {
-        self.tile_count() == 2 && !self.ranks.filter_pair().is_empty()
+    fn added_from(self) -> usize {
+        (self.raw() >> 7) & 0x7f
     }
 }

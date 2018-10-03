@@ -20,10 +20,6 @@ pub struct Wall {
     pub ridge: usize
 }
 
-pub struct Land {
-    pub tiles: Tiles,
-    pub melds: Vec<Meld>
-}
 
 #[derive(Copy,Clone,Debug,PartialEq,Eq)]
 pub struct DiscardedTile(u16);
@@ -113,7 +109,27 @@ impl Rivers {
     }
 }
 
-pub struct Lands([Land; Wind::N]);
+pub struct Melds {
+    index: usize,
+    meld: [Meld; 16]
+}
+
+impl Melds {
+    pub fn new() -> Self {
+        Melds {
+            index: 0,
+            meld: [Meld::from_raw(0); 16]
+        }
+    }
+    pub fn clear(&mut self) {
+        self.index = 0;
+    }
+}
+
+pub struct Lands {
+    tiles: [Tiles; Wind::N],
+    melds: Melds
+}
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub struct RiverRef(u16);
@@ -186,24 +202,26 @@ impl Table {
     pub fn seat(&mut self, wind: Wind) -> Seat {
         Seat {
             wind,
-            land: self.lands.get_mut(wind),
+            land: &mut self.lands.tiles[wind.id()],
             river: &mut self.rivers,
             wall: &mut self.wall,
+            meld: &mut self.lands.melds
         }
     }
 }
 
 pub struct Seat<'a> {
     wind: Wind,
-    land: &'a mut Land,
+    land: &'a mut Tiles,
     river: &'a mut Rivers,
     wall: &'a mut Wall,
+    meld: &'a mut Melds,
 }
 
 impl<'a> Seat<'a> {
     pub fn draw_show(&mut self, drawn: Tile) -> String {
         let mut s = String::new();
-        let mut tiles = self.land.tiles.clone();
+        let mut tiles = self.land.clone();
         while let Some(tile) = tiles.next() {
             s.push_str(&format!("{}", tile.figure().show()));
         }
@@ -311,41 +329,17 @@ impl Wall {
     }
 }
 
-impl Land {
-    pub fn new() -> Self {
-        Land {
-            tiles: Tiles::new(),
-            melds: Vec::new()
-        }
-    }
-    pub fn add(&mut self, tile: Tile) {
-        self.tiles.add(tile)
-    }
-    pub fn del(&mut self, tile: Tile) {
-        self.tiles.del(tile)
-    }
-    pub fn extract(&mut self, figure: Figure) -> Option<Tile> {
-        self.tiles.extract(figure)
-    }
-    pub fn has(&self, tile: Tile) -> bool {
-        self.tiles.has(tile)
-    }
-    pub fn clear(&mut self) {
-        self.tiles.clear()
-    }
-}
-
 impl Lands {
     pub fn new() -> Self {
-        Lands([Land::new(), Land::new(), Land::new(), Land::new()])
-    }
-    pub fn get_mut(&mut self, seat: Wind) -> &mut Land {
-        &mut (self.0)[seat.id()]
-    }
-    pub fn get(&self, seat: Wind) -> &Land {
-        &(self.0)[seat.id()]
+        Lands {
+            tiles: [Tiles::new(), Tiles::new(), Tiles::new(), Tiles::new()],
+            melds: Melds::new()
+        }
     }
     pub fn clear(&mut self) {
-        self.0.iter_mut().for_each(Land::clear)
+        for tiles in self.tiles.iter_mut() {
+            tiles.clear()
+        }
+        self.melds.clear()
     }
 }

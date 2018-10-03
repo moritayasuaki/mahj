@@ -110,6 +110,8 @@ pub struct Figures([Ranks; 4]);
 pub struct Suits([u8; 4]);
 #[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
 pub struct Ranks(u32);
+#[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
+pub struct SuitRanks(u32);
 
 impl Tiles {
     pub fn new() -> Self {
@@ -194,6 +196,12 @@ impl Ranks {
     }
     pub fn is_empty(&self) -> bool {
         self.count() == 0
+    }
+    pub fn raw(self) -> usize {
+        self.0 as usize
+    }
+    pub fn from_raw(raw: usize) -> Self {
+        Ranks((raw & 0o777777777) as u32)
     }
     pub fn count(&self) -> usize {
         let r = self.0;
@@ -281,5 +289,63 @@ impl Suits {
             } else {
                 None
             })
+    }
+}
+
+
+
+impl SuitRanks {
+    pub fn raw(self) -> usize {
+        self.0 as usize
+    }
+    pub fn from_raw(raw: usize) -> Self {
+        SuitRanks((raw & 0o3777777777) as u32)
+    }
+    pub fn from_suitranks(suit: Suit, ranks: Ranks) -> Self {
+        SuitRanks::from_raw(suit.id() << (3 * 9) | ranks.raw())
+    }
+    pub fn into_suitranks(self) -> (Suit, Ranks) {
+        (self.suit(), self.ranks())
+    }
+    pub fn ranks(self) -> Ranks {
+        Ranks::from_raw(self.raw())
+    }
+    pub fn suit(self) -> Suit {
+        Suit::from_id(self.raw() >> (3 * 9))
+    }
+    pub fn tile_count(&self) -> usize {
+        self.ranks().count()
+    }
+
+    pub fn is_chow(&self) -> bool {
+        self.suit().is_numeric() && self.ranks().count() == 3 && !self.ranks().filter_chow().is_empty()
+    }
+
+    pub fn is_pong(&self) -> bool {
+        self.tile_count() == 3 && !self.ranks().filter_chow().is_empty()
+    }
+
+    pub fn is_kong(&self) -> bool {
+        self.tile_count() == 3 && !self.ranks().filter_chow().is_empty()
+    }
+
+    pub fn is_kanchan(&self) -> bool {
+        self.tile_count() == 2 && !self.ranks().filter_kanchan().is_empty()
+    }
+
+    pub fn is_penryan(&self) -> bool {
+        self.tile_count() == 2 && !self.ranks().filter_penryan().is_empty()
+    }
+
+    pub fn is_penchan(&self) -> bool {
+        self.tile_count() == 2 && !self.ranks().filter_penchan().is_empty()
+    }
+
+    pub fn is_ryanmen(&self) -> bool {
+        self.tile_count() == 2 && !self.ranks().filter_ryanmen().is_empty()
+    }
+
+    pub fn is_pair(&self) -> bool {
+        self.tile_count() == 2 && !self.ranks().filter_pair().is_empty()
     }
 }
