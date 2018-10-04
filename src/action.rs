@@ -15,11 +15,6 @@ pub enum Choice {
 impl Choice {
     pub fn parse(s: &str) -> Result<Self, failure::Error> {
         let mut tokens = s.split_whitespace();
-        fn figure_arg<'a>(f: fn(Figure) -> Choice, mut tokens: impl Iterator<Item=&'a str>) -> Result<Choice, failure::Error> {
-            let expr = tokens.next().ok_or(failure::err_msg("No argument"))?;
-            let fig = Figure::parse(expr).ok_or(failure::err_msg("Parse error"))?;
-            Ok(f(fig))
-        };
         if let Some(t) = tokens.next() {
             match t {
                 "NineTerminals" => Ok(Choice::NineTerminals),
