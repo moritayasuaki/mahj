@@ -53,7 +53,7 @@ pub enum Phase {
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum Finish {
     WinByDraw(Wind, Tile),
-    WinByDiscard(Wind, RiverRef),
+    WinByDiscard(Wind),
     ExaustiveDraw,
     FourRiichiAbort,
     NineTerminalAbort,
@@ -115,6 +115,11 @@ pub fn run_hands(sticks: &mut Sticks, round: Wind, dealer: usize) -> Result<(), 
     Ok(())
 }
 
+pub fn shuffle_dice() -> usize {
+    let r: usize = rand::random();
+    (r % 6) + 1
+}
+
 pub fn init_table(table: &mut Table) -> [usize; 2] {
     table.shuffle_tiles();
     let dice = [shuffle_dice(), shuffle_dice()];
@@ -160,11 +165,10 @@ pub fn run_hand(sticks: &mut Sticks, round: Wind, dealer: usize, table: &mut Tab
 
 impl Finish {
     pub fn is_goulash_hand(self) -> bool {
-        use self::Finish::*;
         match self {
-            ExaustiveDraw | FourRiichiAbort |
-            NineTerminalAbort | FourWindAbort |
-            ThreeWinAbort | FourKongAbort => true,
+            Finish::ExaustiveDraw | Finish::FourRiichiAbort |
+            Finish::NineTerminalAbort | Finish::FourWindAbort |
+            Finish::ThreeWinAbort | Finish::FourKongAbort => true,
             _ => false
         }
     }
@@ -235,27 +239,15 @@ impl<'a> State<'a> {
         let stdin = std::io::stdin();
         let line = stdin.lock().lines().next().unwrap()?;
         match Choice::parse(&line)? {
-            Choice::Discard(fig) => {
-                if seat.discard_figure(fig) {
+            Choice::Discard{figure, riichi} => {
+                if seat.discard_figure(figure) {
                     seat.land.add(tile);
                     Phase::Claims().into()
                 } else {
-                    Err(failure::err_msg(format!("Can not discard {}", fig.show())))
+                    Err(failure::err_msg(format!("Can not discard {}", figure.show())))
                 }
             },
-            Choice::Through => {
-                seat.discard_tile(tile);
-                Phase::Claims().into()
-            },
-            Choice::Riichi(fig) => {
-                if seat.discard_figure(fig) {
-                    seat.land.add(tile);
-                    Phase::Claims().into()
-                } else {
-                    Err(failure::err_msg(format!("Can not discard {}", fig.show())))
-                }
-            },
-            Choice::ThroughRiichi => {
+            Choice::DrawAndDiscard{riichi} => {
                 seat.discard_tile(tile);
                 Phase::Claims().into()
             },
@@ -273,11 +265,12 @@ impl<'a> State<'a> {
         let stdin = std::io::stdin();
         let mut claims = Claims::collect(stdin.lock().lines().take(3).map(|x| x.unwrap()))?;
         if let Some(ClaimBy{nth, claim}) = claims.next() {
-            if claim != Claim::THROUGH {
-                let claimer = seat.nth(nth as usize);
-                Phase::Meld(claimer, claim).into()
-            } else {
-                Phase::Draw(seat.rightside()).into()
+            let claimer = seat.rightside().nth(nth);
+            match claim {
+                Claim::THROUGH => Phase::Draw(seat.rightside()).into(),
+                Claim::CHOW | Claim::PUNG | Claim::KONG => Phase::Meld(claimer, claim).into(),
+                Claim::MAHJONG => Finish::WinByDiscard(claimer).into(),
+                _ => unreachable!()
             }
         } else {
             Phase::Draw(seat.rightside()).into()
@@ -306,8 +299,4 @@ impl Phase {
     }
 }
 
-pub fn shuffle_dice() -> usize {
-    let r: usize = rand::random();
-    (r % 6) + 1
-}
 

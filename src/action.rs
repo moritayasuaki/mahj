@@ -5,11 +5,9 @@ use std::ops::Deref;
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum Choice {
-    Discard(Figure),
-    Riichi(Figure),
+    DrawAndDiscard{riichi: bool},
+    Discard{figure:Figure, riichi: bool},
     Kong(Figure),
-    Through,
-    ThroughRiichi,
     NineTerminals,
     Mahjong
 }
@@ -26,15 +24,27 @@ impl Choice {
             match t {
                 "NineTerminals" => Ok(Choice::NineTerminals),
                 "Mohjong" => Ok(Choice::Mahjong),
-                "Discard" => figure_arg(Choice::Discard, tokens),
-                "Riichi" => figure_arg(Choice::Riichi, tokens),
-                "Kong" =>  figure_arg(Choice::Kong, tokens),
-                "Through" => Ok(Choice::Through),
-                "ThroughRiichi" => Ok(Choice::ThroughRiichi),
+                "Discard" | "Riichi" => {
+                    let riichi = t == "Riichi";
+                    if let Some(expr) = tokens.next() {
+                        Figure::parse(expr).ok_or(failure::err_msg("Parse error"))
+                            .map(|figure| Choice::Discard{figure, riichi})
+                    } else {
+                        Ok(Choice::DrawAndDiscard{riichi})
+                    }
+                },
+                "Kong" => {
+                    if let Some(expr) = tokens.next() {
+                        Figure::parse(expr).ok_or(failure::err_msg("Parse error"))
+                            .map(|figure| Choice::Kong(figure))
+                    } else {
+                        Err(failure::err_msg("No arguments"))
+                    }
+                }
                 command => Err(failure::err_msg(format!("No such command: {}", command)))
             }
         } else {
-            Ok(Choice::Through)
+            Err(failure::err_msg(format!("No command")))
         }
     }
 }
@@ -67,10 +77,10 @@ impl Claim {
                 "Pung" => Ok(Claim::PUNG),
                 "Chow" => Ok(Claim::CHOW),
                 "Through" => Ok(Claim::THROUGH),
-                claim =>  Err(failure::err_msg(format!("invalid claim {}", claim))),
+                claim =>  Err(failure::err_msg(format!("Invalid claim {}", claim))),
             }
         } else {
-            Ok(Claim::THROUGH)
+            Err(failure::err_msg("No token"))
         }
     }
 }
@@ -90,15 +100,16 @@ impl Claims {
     pub fn collect<'a>(ss: impl Iterator<Item = impl Deref<Target=str>>) -> Result<Self, failure::Error> {
         let mut claims = Self::new();
         for (nth, s) in ss.enumerate() {
-            if let Ok(claim) = Claim::parse(&s) {
-                claims.add(ClaimBy {nth, claim})
-            }
+            let claim = Claim::parse(&s).unwrap_or(Claim::THROUGH);
+            claims.add(ClaimBy {nth, claim})
         }
         Ok(claims)
     }
     pub fn add(&mut self, claimby: ClaimBy) {
         let ClaimBy{claim, nth} = claimby;
-        self.0 |= 0o1 << (3 * claim.id() + nth);
+        if claim != Claim::THROUGH {
+            self.0 |= 0o1 << (3 * claim.id() + nth);
+        }
     }
     pub fn empty(&self) -> bool {
         self.0 == 0
