@@ -35,8 +35,8 @@ impl DiscardedTile {
     pub fn from_raw(raw: usize) -> Self {
         DiscardedTile(raw as u16)
     }
-    pub fn from_tile_seat(tile: Tile, seat: Wind) -> Self {
-        Self::from_raw((tile.id() << 8) | seat.id())
+    pub fn from_tile_wind(tile: Tile, wind: Wind) -> Self {
+        Self::from_raw((tile.id() << 8) | wind.id())
     }
     pub fn discarded_by(self) -> Wind {
         Wind::from_id(self.raw() & 0o3)
@@ -66,24 +66,24 @@ impl DiscardedTile {
 }
 
 pub struct Rivers {
-    pub tiles: [DiscardedTile; 90],
+    pub tiles: [DiscardedTile; Tile::N],
     pub index: usize
 }
 
 impl Rivers {
     pub fn new() -> Self {
         Rivers {
-            tiles: [DiscardedTile::from_raw(0usize); 90],
+            tiles: [DiscardedTile::from_raw(0usize); Tile::N],
             index: 0
         }
     }
-    pub fn get_vec(&self, seat: Wind) -> Vec<DiscardedTile> {
-        self.tiles.iter().filter(|dtile| dtile.discarded_by() == seat).cloned().collect()
+    pub fn get_vec(&self, wind: Wind) -> Vec<DiscardedTile> {
+        self.tiles.iter().filter(|dtile| dtile.discarded_by() == wind).cloned().collect()
     }
-    pub fn add(&mut self, seat: Wind, tile: Tile) {
+    pub fn add(&mut self, wind: Wind, tile: Tile) {
         let i = self.index;
         self.index = i + 1;
-        self.tiles[i] = DiscardedTile::from_tile_seat(tile, seat)
+        self.tiles[i] = DiscardedTile::from_tile_wind(tile, wind)
     }
     pub fn clear(&mut self) {
         self.index = 0
@@ -127,8 +127,8 @@ impl Melds {
 }
 
 pub struct Lands {
-    tiles: [Tiles; Wind::N],
-    melds: Melds
+    pub tiles: [Tiles; Wind::N],
+    pub melds: Melds
 }
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
@@ -149,7 +149,7 @@ impl Wind {
     pub fn make_iter() -> impl Iterator<Item=Self> {
         (0..Self::N).map(Self::from_id)
     }
-    pub fn claimers(self) -> impl Iterator<Item=Self> {
+    pub fn others(self) -> impl Iterator<Item=Self> {
         let id = self.id();
         (id+1..id+4).map(Self::from_id)
     }
@@ -159,11 +159,11 @@ impl Wind {
     pub fn rightside(self) -> Self {
         self.nth(1)
     }
+    pub fn frontside(self) -> Self {
+        self.nth(2)
+    }
     pub fn leftside(self) -> Self {
         self.nth(3)
-    }
-    pub fn otherside(self) -> Self {
-        self.nth(2)
     }
     pub fn show(self) -> &'static str {
         match self {
@@ -199,61 +199,7 @@ impl Table {
     pub fn draw_replacement(&mut self) -> Option<Tile> {
         self.wall.next()
     }
-    pub fn seat(&mut self, wind: Wind) -> Seat {
-        Seat {
-            wind,
-            land: &mut self.lands.tiles[wind.id()],
-            river: &mut self.rivers,
-            wall: &mut self.wall,
-            meld: &mut self.lands.melds
-        }
-    }
 }
-
-pub struct Seat<'a> {
-    pub wind: Wind,
-    pub land: &'a mut Tiles,
-    pub river: &'a mut Rivers,
-    pub wall: &'a mut Wall,
-    pub meld: &'a mut Melds,
-}
-
-impl<'a> Seat<'a> {
-    pub fn show_draw_phase(&mut self, drawn: Tile) -> String {
-        let mut s = String::new();
-        let mut tiles = self.land.clone();
-        while let Some(tile) = tiles.next() {
-            s.push_str(&format!("{}", tile.figure().show()));
-        }
-        s.push_str(&format!(" {}", drawn.figure().show()));
-        s
-    }
-    pub fn take_tile(&mut self, tile: Tile) {
-        self.land.add(tile)
-    }
-    pub fn discard_figure(&mut self, figure: Figure) -> bool {
-        if let Some(tile) = self.land.extract(figure) {
-            self.put_river(tile);
-            true
-        } else {
-            false
-        }
-    }
-
-    pub fn discard_tile(&mut self, tile: Tile) -> bool {
-        if self.land.has(tile) {
-            self.land.del(tile);
-            self.put_river(tile);
-            true
-        } else {
-            false
-        }
-    }
-    pub fn put_river(&mut self, tile: Tile) {
-        self.river.add(self.wind, tile)
-    }
-}
-
 
 impl Wall {
     pub const N_DEAD_WALL: usize = 14;
