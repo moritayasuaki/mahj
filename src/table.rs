@@ -77,8 +77,11 @@ impl Rivers {
             index: 0
         }
     }
-    pub fn get_vec(&self, wind: Wind) -> Vec<DiscardedTile> {
-        self.tiles.iter().filter(|dtile| dtile.discarded_by() == wind).cloned().collect()
+    pub fn iter(&self) -> impl Iterator<Item = &DiscardedTile> {
+        self.tiles.iter()
+    }
+    pub fn len(&self) -> usize {
+        self.index
     }
     pub fn add(&mut self, wind: Wind, tile: Tile) {
         let i = self.index;

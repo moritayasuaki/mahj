@@ -23,3 +23,13 @@ impl Dice {
         (0..Self::P).map(|i| self.get(i)).sum()
     }
 }
+
+#[test]
+fn dice_range() {
+    for _ in 0..100 {
+        let dice = Dice::new();
+        let (a,b) = (dice.get(0), dice.get(1));
+        assert!(1 <= a && a <= 6);
+        assert!(1 <= b && b <= 6);
+    }
+}

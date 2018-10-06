@@ -230,39 +230,51 @@ pub struct Seat<'a> {
 }
 
 impl<'a> Seat<'a> {
-    pub fn show_draw_phase(&mut self, drawn: Tile) -> String {
-        let mut s = String::new();
+    pub fn show_draw_phase(&mut self, drawn: Tile) {
         let mut tiles = self.land.clone();
         while let Some(tile) = tiles.next() {
-            s.push_str(&format!("{}", tile.figure().show()));
+            write!(self.player, "{}", tile.figure().show());
         }
-        s.push_str(&format!(" {}", drawn.figure().show()));
-        s
+        writeln!(self.player, "{}", drawn.figure().show());
     }
-    pub fn take_tile(&mut self, tile: Tile) {
+
+    pub fn show_claim_phase(&mut self) {
+        let mut s = String::new();
+        let player = &mut self.player;
+        let s = self.wind;
+        for o in s.others() {
+            self.river.iter().filter(|d| d.discarded_by() == o).map(|d| {
+                write!(player, "{}", d.tile().figure().show());
+            });
+            writeln!(player, "");
+        }
+        self.river.iter().filter(|d| d.discarded_by() == s).map(|d| {
+            write!(player, "{}", d.tile().figure().show());
+        });
+        writeln!(player, "");
+        let mut tiles = self.land.clone();
+        while let Some(tile) = tiles.next() {
+            write!(player, "{}", tile.figure().show());
+        }
+    }
+
+    pub fn take_tile_into_hand(&mut self, tile: Tile) {
         self.land.add(tile)
     }
-    pub fn discard_figure(&mut self, figure: Figure) -> bool {
+
+    pub fn discard_tile_from_hand(&mut self, figure: Figure) -> bool {
         if let Some(tile) = self.land.extract(figure) {
-            self.put_river(tile);
+            self.throw_tile_into_river(tile);
             true
         } else {
             false
         }
     }
 
-    pub fn discard_tile(&mut self, tile: Tile) -> bool {
-        if self.land.has(tile) {
-            self.land.del(tile);
-            self.put_river(tile);
-            true
-        } else {
-            false
-        }
-    }
-    pub fn put_river(&mut self, tile: Tile) {
+    pub fn throw_tile_into_river(&mut self, tile: Tile) {
         self.river.add(self.wind, tile)
     }
+
     pub fn get_claim(&mut self) -> Claim {
         self.player.get_line()
             .and_then(|line| Claim::parse(&line))
@@ -277,15 +289,15 @@ impl<'a> Seat<'a> {
     pub fn do_choice(&mut self, choice: Choice, tile: Tile) -> Result<Step, failure::Error> {
         match choice {
             Choice::Discard{figure, riichi} => {
-                if self.discard_figure(figure) {
-                    self.take_tile(tile);
+                if self.discard_tile_from_hand(figure) {
+                    self.take_tile_into_hand(tile);
                     Phase::Ask().into()
                 } else {
                     Err(failure::err_msg(format!("Can not discard {}", figure.show())))
                 }
             },
             Choice::DrawAndDiscard{riichi} => {
-                self.discard_tile(tile);
+                self.throw_tile_into_river(tile);
                 Phase::Ask().into()
             },
             Choice::Kong(fig) => {
@@ -335,7 +347,7 @@ impl<'a> State<'a> {
     }
     pub fn choose(&mut self, turn: Wind, tile: Tile) -> Result<Step, failure::Error> {
         let seat = &mut self.seat(turn);
-        println!("{}", seat.show_draw_phase(tile));
+        seat.show_draw_phase(tile);
         let choice = seat.get_choice();
         seat.do_choice(choice, tile)
     }
@@ -344,6 +356,7 @@ impl<'a> State<'a> {
         let mut claims = Claims::new(claimee);
         for claimer in claimee.others() {
             let seat = &mut self.seat(claimer);
+            seat.show_claim_phase();
             let claim = seat.get_claim();
             claims.add(claim, claimer);
         }
