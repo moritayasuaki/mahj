@@ -78,7 +78,7 @@ impl Rivers {
         }
     }
     pub fn iter(&self) -> impl Iterator<Item = &DiscardedTile> {
-        self.tiles.iter()
+        self.tiles.iter().take(self.index)
     }
     pub fn len(&self) -> usize {
         self.index

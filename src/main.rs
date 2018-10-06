@@ -10,7 +10,11 @@ mod player;
 mod dice;
 
 fn main() -> Result<(), failure::Error> {
-    let mut players = game::Players::new();
+    let mut players = game::Players([
+        player::Player::from_stdio()?,
+        player::Player::from_stdio()?,
+        player::Player::from_stdio()?,
+        player::Player::from_stdio()?]);
     let score = players.run_halfmatch()?;
     println!("{:?}", score);
     Ok(())

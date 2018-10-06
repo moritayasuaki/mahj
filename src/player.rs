@@ -3,8 +3,8 @@ use std::io;
 use std::io::{Write, BufRead};
 use failure;
 
-pub struct SharedStdin();
-pub struct SharedStdout();
+pub struct SharedStdin;
+pub struct SharedStdout;
 impl Write for SharedStdout {
     fn write(&mut self, data:&[u8]) -> io::Result<usize> {
         io::stdout().write(data)
@@ -41,19 +41,23 @@ impl Player {
             rx: None,
         }
     }
-    fn from_socket(listener: &net::TcpListener) -> Result<Player, failure::Error> {
+    pub fn from_socket(listener: &net::TcpListener) -> Result<Player, failure::Error> {
         let (out, addr) = listener.accept()?;
         let input = io::BufReader::new(out.try_clone()?)
             .lines()
             .map(|r| r.map_err(|e| e.into()));
-        Ok (Player {
+        Ok(Player {
             name: format!("{}", addr).to_string(),
             tx: Some(Box::new(out)),
-            rx: Some(Box::new(input))
+            rx: Some(Box::new(input)),
         })
     }
-    fn from_stdin() -> Result<Player, failure::Error> {
-        Err(failure::err_msg("hoge"))
+    pub fn from_stdio() -> Result<Player, failure::Error> {
+        Ok(Player {
+            name: "stdio".to_string(),
+            tx: Some(Box::new(SharedStdout)),
+            rx: Some(Box::new(SharedStdin)),
+        })
     }
     pub fn get_line(&mut self) -> Result<String, failure::Error> {
         if let Some(ref mut rx) = self.rx {

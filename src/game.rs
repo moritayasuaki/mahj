@@ -65,12 +65,9 @@ pub enum Finish {
     FourKongAbort,   
 }
 
-pub struct Players([Player; 4]);
+pub struct Players(pub [Player; 4]);
 
 impl Players {
-    pub fn new() -> Self {
-        Players([Player::new(), Player::new(), Player::new(), Player::new()])
-    }
     pub fn run_match(&mut self) -> Result<[isize; 4], failure::Error> {
         let sticks = &mut Sticks::new();
         for round in Wind::make_iter() {
@@ -232,23 +229,29 @@ pub struct Seat<'a> {
 impl<'a> Seat<'a> {
     pub fn show_draw_phase(&mut self, drawn: Tile) {
         let mut tiles = self.land.clone();
+        let player = &mut self.player;
+        writeln!(player, "{}家 ツモ番", self.wind.show());
         while let Some(tile) = tiles.next() {
-            write!(self.player, "{}", tile.figure().show());
+            write!(player, "{}", tile.figure().show());
         }
-        writeln!(self.player, "{}", drawn.figure().show());
+        writeln!(player, "{}", drawn.figure().show());
     }
 
     pub fn show_claim_phase(&mut self) {
         let mut s = String::new();
         let player = &mut self.player;
         let s = self.wind;
+        let river = &mut self.river;
+        writeln!(player, "{}家 鳴き番", s.show());
         for o in s.others() {
-            self.river.iter().filter(|d| d.discarded_by() == o).map(|d| {
+            write!(player, "{}家河", o.show());
+            river.iter().filter(|d| d.discarded_by() == o).for_each(|d| {
                 write!(player, "{}", d.tile().figure().show());
             });
             writeln!(player, "");
         }
-        self.river.iter().filter(|d| d.discarded_by() == s).map(|d| {
+        write!(player, "{}家河", s.show());
+        river.iter().filter(|d| d.discarded_by() == s).for_each(|d| {
             write!(player, "{}", d.tile().figure().show());
         });
         writeln!(player, "");
@@ -256,6 +259,7 @@ impl<'a> Seat<'a> {
         while let Some(tile) = tiles.next() {
             write!(player, "{}", tile.figure().show());
         }
+        writeln!(player, "");
     }
 
     pub fn take_tile_into_hand(&mut self, tile: Tile) {
