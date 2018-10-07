@@ -1,7 +1,5 @@
 use table::*;
-use meld::*;
 use tile::*;
-use std::ops::Deref;
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum Choice {
@@ -21,32 +19,30 @@ impl Default for Choice {
 impl Choice {
     pub fn parse(s: &str) -> Result<Self, failure::Error> {
         let mut tokens = s.split_whitespace();
-        if let Some(t) = tokens.next() {
-            match t {
-                "NineTerminals" => Ok(Choice::NineTerminals),
-                "Mohjong" => Ok(Choice::Mahjong),
-                "Discard" | "Riichi" => {
-                    let riichi = t == "Riichi";
-                    if let Some(expr) = tokens.next() {
-                        Figure::parse(expr).ok_or(failure::err_msg("Parse error"))
-                            .map(|figure| Choice::Discard{figure, riichi})
-                    } else {
-                        Ok(Choice::DrawAndDiscard{riichi})
-                    }
-                },
-                "Kong" => {
-                    if let Some(expr) = tokens.next() {
-                        Figure::parse(expr).ok_or(failure::err_msg("Parse error"))
-                            .map(|figure| Choice::Kong(figure))
-                    } else {
-                        Err(failure::err_msg("No arguments"))
-                    }
+        let t = tokens.next()
+            .ok_or(failure::err_msg(format!("No command")))?;
+        match t {
+            "NineTerminals" => Ok(Choice::NineTerminals),
+            "Mohjong" => Ok(Choice::Mahjong),
+            "Discard" | "Riichi" => {
+                let riichi = t == "Riichi";
+                if let Some(expr) = tokens.next() {
+                    Figure::parse(expr).ok_or(failure::err_msg("Parse error"))
+                        .map(|figure| Choice::Discard{figure, riichi})
+                } else {
+                    Ok(Choice::DrawAndDiscard{riichi})
                 }
-                command => Err(failure::err_msg(format!("No such command: {}", command)))
+            },
+            "Kong" => {
+                if let Some(expr) = tokens.next() {
+                    Figure::parse(expr).ok_or(failure::err_msg("Parse error"))
+                        .map(|figure| Choice::Kong(figure))
+                } else {
+                    Err(failure::err_msg("No arguments"))
+                }
             }
-        } else {
-            Err(failure::err_msg(format!("No command")))
-        }
+            command => Err(failure::err_msg(format!("No such command: {}", command)))
+            }
     }
 }
 

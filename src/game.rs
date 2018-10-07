@@ -45,12 +45,12 @@ pub struct State<'a> {
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
 pub enum Phase {
-    Draw(Wind),
-    Choose(Wind, Tile),
-    Replace(Wind),
-    Ask(),
-    Meld(Wind, Claim),
-    Discard(Wind),
+    Draw{wind: Wind},
+    Choose{wind: Wind, drawn: Tile},
+    Replace{wind: Wind, expose: bool},
+    Ask{kong: bool},
+    Meld{wind: Wind, claim: Claim},
+    Discard{wind: Wind},
 }
 
 #[derive(Debug,Copy,Clone,PartialEq,Eq)]
@@ -166,7 +166,6 @@ pub fn init_table(table: &mut Table) -> Dice {
     dice
 }
 
-
 impl Finish {
     pub fn is_goulash_hand(self) -> bool {
         match self {
@@ -222,7 +221,7 @@ pub struct Seat<'a> {
     pub land: &'a mut Tiles,
     pub river: &'a mut Rivers,
     pub wall: &'a mut Wall,
-    pub meld: &'a mut Melds,
+    pub melds: &'a mut Melds,
     pub player: &'a mut Player
 }
 
@@ -265,16 +264,15 @@ impl<'a> Seat<'a> {
     pub fn take_tile_into_hand(&mut self, tile: Tile) {
         self.land.add(tile)
     }
-
-    pub fn discard_tile_from_hand(&mut self, figure: Figure) -> bool {
-        if let Some(tile) = self.land.extract(figure) {
-            self.throw_tile_into_river(tile);
-            true
-        } else {
-            false
-        }
+    pub fn remove_tile_from_hand(&mut self, tile: Tile) {
+        self.land.del(tile)
     }
+    pub fn has_meld(&mut self) {
 
+    }
+    pub fn extract_tile_from_hand(&mut self, figure: Figure) -> Option<Tile> {
+        self.land.extract(figure)
+    }
     pub fn throw_tile_into_river(&mut self, tile: Tile) {
         self.river.add(self.wind, tile)
     }
@@ -289,23 +287,52 @@ impl<'a> Seat<'a> {
             .and_then(|line| Choice::parse(&line))
             .unwrap_or_default()
     }
-
+    pub fn has_kong_concealed(&self, figure: Figure) -> bool {
+        self.land.clone().figures().has_kong(figure)
+    }
+    pub fn has_pung_exposed(&self, figure: Figure) -> bool {
+        self.melds.iter().find(|meld|
+            (meld.wind() == self.wind) && (meld.meldtype() == MeldType::PUNG) && (meld.rep() == figure)).is_some()
+    }
+    pub fn has_figure_concealed(&self, figure: Figure) -> bool {
+        self.land.clone().figures().has_one(figure)
+    }
+    pub fn rob_tile(&mut self) -> Tile {
+        let d = self.river.top().expect("no river");
+        d.add_robbed_mark(self.wind);
+        d.tile()
+    }
+    pub fn meld_kong(&mut self) {
+        let tile = self.rob_tile();
+        unimplemented!();
+    }
     pub fn do_choice(&mut self, choice: Choice, tile: Tile) -> Result<Step, failure::Error> {
         match choice {
             Choice::Discard{figure, riichi} => {
-                if self.discard_tile_from_hand(figure) {
-                    self.take_tile_into_hand(tile);
-                    Phase::Ask().into()
-                } else {
-                    Err(failure::err_msg(format!("Can not discard {}", figure.show())))
-                }
+                let tile = self.extract_tile_from_hand(figure)
+                    .ok_or(failure::err_msg(format!("Can not discard {}", figure.show())))?;
+                self.take_tile_into_hand(tile);
+                Phase::Ask{kong: false}.into()
             },
             Choice::DrawAndDiscard{riichi} => {
                 self.throw_tile_into_river(tile);
-                Phase::Ask().into()
+                Phase::Ask{kong: false}.into()
             },
-            Choice::Kong(fig) => {
-                unimplemented!()
+            Choice::Kong(figure) => {
+                self.take_tile_into_hand(tile);
+                if self.has_kong_concealed(figure) {
+                    let tile = self.extract_tile_from_hand(figure).expect("must have figure");
+                    self.throw_tile_into_river(tile);
+                    self.meld_kong();
+                    Phase::Replace{wind: self.wind, expose: false}.into()
+                } else if self.has_pung_exposed(figure) && self.has_figure_concealed(figure) {
+                    let tile = self.extract_tile_from_hand(figure).expect("must have figure");
+                    self.throw_tile_into_river(tile);
+                    Phase::Ask{kong: true}.into()
+                } else {
+                    self.remove_tile_from_hand(tile);
+                    Err(failure::err_msg("can not make kong"))
+                }
             },
             Choice::Mahjong => {
                 unimplemented!()
@@ -324,7 +351,7 @@ impl<'a> State<'a> {
             land: &mut self.table.lands.tiles[wind.id()],
             river: &mut self.table.rivers,
             wall: &mut self.table.wall,
-            meld: &mut self.table.lands.melds,
+            melds: &mut self.table.lands.melds,
             player: &mut self.players[pid],
         }
     }
@@ -338,7 +365,7 @@ impl<'a> State<'a> {
             Finish::ExaustiveDraw.into()
         }
     }
-    pub fn replace(&mut self, seat: Wind) -> Result<Step, failure::Error> {
+    pub fn replace(&mut self, seat: Wind, expose: bool) -> Result<Step, failure::Error> {
         if let Some(tile) = self.table.draw_replacement() {
             self.choose(seat, tile).into()
         } else {
@@ -355,45 +382,52 @@ impl<'a> State<'a> {
         let choice = seat.get_choice();
         seat.do_choice(choice, tile)
     }
-    pub fn ask(&mut self) -> Result<Step, failure::Error> {
-        let claimee = self.table.rivers.current_mut().expect("Tiles not found on river").discarded_by();
+    pub fn ask(&mut self, kong: bool) -> Result<Step, failure::Error> {
+        let claimee = self.table.rivers.top().expect("Tiles not found on river").discarded_by();
         let mut claims = Claims::new(claimee);
+
         for claimer in claimee.others() {
             let seat = &mut self.seat(claimer);
             seat.show_claim_phase();
             let claim = seat.get_claim();
             claims.add(claim, claimer);
         }
+
+        let default = if !kong {
+            Phase::Draw{wind: claimee.rightside()}
+        } else {
+            Phase::Replace{wind: claimee, expose: true}
+        };
+
         if let Some((claim, claimer)) = claims.next() {
             match claim {
-                Claim::THROUGH => Phase::Draw(claimee.rightside()).into(),
-                Claim::CHOW | Claim::PUNG | Claim::KONG => Phase::Meld(claimer, claim).into(),
                 Claim::MAHJONG => Finish::WinByDiscard(claimer).into(),
-                _ => unreachable!()
+                Claim::CHOW | Claim::PUNG | Claim::KONG if !kong => Phase::Meld{wind: claimer, claim}.into(),
+                _ => default.into()
             }
         } else {
-            Phase::Draw(claimee.rightside()).into()
+            default.into()
         }
     }
     pub fn discard(&mut self, seat: Wind) -> Result<Step, failure::Error> {
-        Phase::Ask().into()
+        Phase::Ask{kong: false}.into()
     }
 }
 
 impl Phase {
     pub fn new() -> Phase {
-        Phase::Draw(Wind::EAST)
+        Phase::Draw{wind: Wind::EAST}
     }
 
     pub fn step<'a>(self, state: &mut State<'a>) -> Result<Step, failure::Error> {
         use self::Phase::*;
         match self {
-            Draw(seat) => state.draw(seat),
-            Choose(seat, tile) => state.choose(seat, tile),
-            Replace(seat) => state.replace(seat),
-            Meld(seat, claim) => state.meld(seat, claim),
-            Ask() => state.ask(),
-            Discard(seat) => state.discard(seat),
+            Draw{wind} => state.draw(wind),
+            Choose{wind, drawn} => state.choose(wind, drawn),
+            Replace{wind, expose} => state.replace(wind, expose),
+            Meld{wind, claim} => state.meld(wind, claim),
+            Ask{kong} => state.ask(kong),
+            Discard{wind} => state.discard(wind),
         }
     }
 }

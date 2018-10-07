@@ -91,21 +91,10 @@ impl Rivers {
     pub fn clear(&mut self) {
         self.index = 0
     }
-    pub fn current_mut(&mut self) -> Option<&mut DiscardedTile> {
+    pub fn top(&mut self) -> Option<&mut DiscardedTile> {
         let i = self.index;
         if i != 0 {
             Some(&mut self.tiles[i-1])
-        } else {
-            None
-        }
-    }
-    pub fn current_ref(&self) -> RiverRef {
-        RiverRef(self.index as u16)
-    }
-    pub fn get(&self, river: RiverRef) -> Option<DiscardedTile> {
-        let i = river.0 as usize;
-        if i != 0 {
-            Some(self.tiles[i-1])
         } else {
             None
         }
@@ -114,18 +103,32 @@ impl Rivers {
 
 pub struct Melds {
     index: usize,
-    meld: [Meld; 16]
+    meld: [Meld; 16],
+    tiles: Tiles
 }
 
 impl Melds {
     pub fn new() -> Self {
         Melds {
             index: 0,
-            meld: [Meld::from_raw(0); 16]
+            meld: [Meld::from_raw(0); 16],
+            tiles: Tiles::new()
         }
     }
     pub fn clear(&mut self) {
         self.index = 0;
+        self.tiles.clear();
+    }
+    pub fn iter(&self) -> impl Iterator<Item = &Meld> {
+        self.meld.iter().take(self.index)
+    }
+    pub fn add(&mut self, meld: Meld) {
+        let i = self.index;
+        self.index += 1;
+        self.meld[i] = meld;
+    }
+    pub fn top(&mut self) -> &mut Meld {
+        &mut self.meld[self.index - 1]
     }
 }
 
@@ -134,8 +137,6 @@ pub struct Lands {
     pub melds: Melds
 }
 
-#[derive(Debug,Copy,Clone,PartialEq,Eq)]
-pub struct RiverRef(u16);
 
 impl Wind {
     pub const N: usize = 4;
@@ -282,7 +283,7 @@ impl Lands {
     pub fn new() -> Self {
         Lands {
             tiles: [Tiles::new(), Tiles::new(), Tiles::new(), Tiles::new()],
-            melds: Melds::new()
+            melds: Melds::new(),
         }
     }
     pub fn clear(&mut self) {

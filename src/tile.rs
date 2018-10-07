@@ -9,6 +9,8 @@ pub struct Figure(u8);
 pub struct Suit(u8);
 #[derive(Copy,Clone,Debug,PartialEq,Eq)]
 pub struct Rank(u8);
+#[derive(Copy,Clone,Debug,PartialEq,Eq)]
+pub struct RankSpec(u8);
 
 impl Tile {
     pub const N: usize = 136;
@@ -21,9 +23,34 @@ impl Tile {
     pub fn mk_iter() -> impl Iterator<Item=Self> {
         (0..Self::N).map(Self::from_id)
     }
+    pub fn suit(&self) -> Suit {
+        self.figure().suit()
+    }
+    pub fn rank(&self) -> Rank {
+        self.figure().rank()
+    }
     pub fn figure(&self) -> Figure {
         Figure((self.id() / 4) as u8)
     }
+    pub fn spec(&self) -> usize {
+        (self.0 & 0x3) as usize
+    }
+    pub fn rank_spec(&self) -> RankSpec {
+        RankSpec::from_rank_spec(self.rank(), self.spec())
+    }
+}
+
+impl RankSpec {
+    pub fn id(&self) -> usize {
+        self.0 as usize
+    }
+    pub fn from_id(id: usize) -> Self {
+        RankSpec(id as u8)
+    }
+    pub fn from_rank_spec(rank: Rank, spec: usize) -> Self {
+        RankSpec::from_id((rank.id() << 2) | spec)
+    }
+
 }
 
 impl Figure {
@@ -162,16 +189,16 @@ impl Tiles {
             None
         }
     }
+    pub fn figures(mut self) -> Figures {
+        let mut figures = Figures::new();
+        while let Some(tile) = self.next() {
+            figures.add(tile.figure());
+        }
+        figures
+    }
  }
 
 impl Figures {
-    const N: usize = 34;
-    const CHARS: [char; Self::N] = [
-        '🀇','🀈','🀉','🀊','🀋','🀌','🀍','🀎','🀏',
-        '🀐','🀑','🀒','🀓','🀔','🀕','🀖','🀗','🀘',
-        '🀙','🀚','🀛','🀜','🀝','🀞','🀟','🀠','🀡',
-        '🀀','🀁','🀂','🀃',
-        '🀄','🀅','🀆'];
     pub fn new() -> Self {
         Figures([Ranks::new(); 4])
     }
@@ -187,6 +214,29 @@ impl Figures {
             .find_map(|(i, r)| {
                 r.next().map(|r| Figure::from_suitrank(Suit::from_id(i), r))
             })
+    }
+    pub fn suitranks(&self, suit: Suit) -> SuitRanks {
+        SuitRanks::from_suitranks(suit, (self.0)[suit.id()])
+    }
+
+    pub fn add(&mut self, figure: Figure) {
+        (self.0)[figure.suit().id()].add(figure.rank())
+    }
+
+    pub fn has_chow(&self, rep: Figure) -> bool {
+        (self.0)[rep.suit().id()].filter_chow().has(rep.rank())
+    }
+    pub fn has_pung(&self, rep: Figure) -> bool {
+        (self.0)[rep.suit().id()].filter_pung().has(rep.rank())
+    }
+    pub fn has_kong(&self, rep: Figure) -> bool {
+        (self.0)[rep.suit().id()].filter_kong().has(rep.rank())
+    }
+    pub fn has_pair(&self, rep: Figure) -> bool {
+        (self.0)[rep.suit().id()].filter_pair().has(rep.rank())
+    }
+    pub fn has_one(&self, rep: Figure) -> bool {
+        (self.0)[rep.suit().id()].filter_one().has(rep.rank())
     }
 }
 
@@ -218,6 +268,12 @@ impl Ranks {
         } else {
             None
         }
+    }
+    pub fn add(&mut self, rank: Rank) {
+        self.0 += 1 << (3 * rank.id());
+    }
+    pub fn has(&self, rank: Rank) -> bool {
+        self.0 & (0o7 << (3 * rank.id())) != 0
     }
     pub fn filter_pung(self) -> Self {
         let r = self.0;
@@ -292,7 +348,30 @@ impl Suits {
     }
 }
 
+pub struct SuitTiles(u64);
 
+impl SuitTiles {
+    pub fn raw(self) -> usize {
+        self.0 as usize
+    }
+    pub fn from_raw(raw: usize) -> Self {
+        SuitTiles((raw & 0x3fffffffff) as u64)
+    }
+    pub fn new() -> Self {
+        SuitTiles(0)
+    }
+    pub fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+    pub fn suit(&self) -> Suit {
+        Suit::from_id(((self.0 >> (4 * 9)) & 0x3) as usize)
+    }
+    pub fn singleton(tile: Tile) -> Self {
+        let mut a = tile.suit().id() << (4 * 9);
+        a |= 1 << (4 * tile.rank().id());
+        SuitTiles::from_raw(a)
+    }
+}
 
 impl SuitRanks {
     pub fn raw(self) -> usize {
