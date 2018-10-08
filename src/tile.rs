@@ -189,7 +189,7 @@ impl Tiles {
             None
         }
     }
-    pub fn figures(mut self) -> Figures {
+    pub fn figures(&mut self) -> Figures {
         let mut figures = Figures::new();
         while let Some(tile) = self.next() {
             figures.add(tile.figure());

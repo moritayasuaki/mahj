@@ -233,7 +233,7 @@ impl<'a> Seat<'a> {
         while let Some(tile) = tiles.next() {
             write!(player, "{}", tile.figure().show());
         }
-        writeln!(player, "{}", drawn.figure().show());
+        writeln!(player, " {}", drawn.figure().show());
     }
 
     pub fn show_claim_phase(&mut self) {
@@ -309,8 +309,9 @@ impl<'a> Seat<'a> {
     pub fn do_choice(&mut self, choice: Choice, tile: Tile) -> Result<Step, failure::Error> {
         match choice {
             Choice::Discard{figure, riichi} => {
-                let tile = self.extract_tile_from_hand(figure)
+                let discard = self.extract_tile_from_hand(figure)
                     .ok_or(failure::err_msg(format!("Can not discard {}", figure.show())))?;
+                self.throw_tile_into_river(discard);
                 self.take_tile_into_hand(tile);
                 Phase::Ask{kong: false}.into()
             },
