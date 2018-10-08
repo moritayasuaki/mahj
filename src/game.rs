@@ -292,19 +292,28 @@ impl<'a> Seat<'a> {
     }
     pub fn has_pung_exposed(&self, figure: Figure) -> bool {
         self.melds.iter().find(|meld|
-            (meld.wind() == self.wind) && (meld.meldtype() == MeldType::PUNG) && (meld.rep() == figure)).is_some()
+            (meld.wind(self.river) == Some(self.wind)) && (meld.meldtype() == MeldType::PUNG) && (meld.rep() == figure)).is_some()
     }
     pub fn has_figure_concealed(&self, figure: Figure) -> bool {
         self.land.clone().figures().has_one(figure)
     }
-    pub fn rob_tile(&mut self) -> Tile {
-        let d = self.river.top().expect("no river");
+    pub fn look_river(&self) -> Tile {
+        self.river.last().expect("no river").tile()
+    }
+    pub fn rob_tile(&mut self) -> Option<(Tile, usize)> {
+        let i = self.river.index;
+        let d = self.river.last_mut()?;
         d.add_robbed_mark(self.wind);
-        d.tile()
+        Some((d.tile(), i))
     }
     pub fn meld_kong(&mut self) {
-        let tile = self.rob_tile();
-        unimplemented!();
+        let (tile, index) = self.rob_tile().expect("no tile");
+        let tile1 = self.land.extract(tile.figure()).expect("no tile");
+        let tile2 = self.land.extract(tile.figure()).expect("no tile");
+        let tile3 = self.land.extract(tile.figure()).expect("no tile");
+        let meld = Meld::from_rep_meldtype_robbed_added(
+            tile.figure(), MeldType::KONG, index, 0);
+        self.melds.add(meld);
     }
     pub fn do_choice(&mut self, choice: Choice, tile: Tile) -> Result<Step, failure::Error> {
         match choice {
@@ -384,7 +393,7 @@ impl<'a> State<'a> {
         seat.do_choice(choice, tile)
     }
     pub fn ask(&mut self, kong: bool) -> Result<Step, failure::Error> {
-        let claimee = self.table.rivers.top().expect("Tiles not found on river").discarded_by();
+        let claimee = self.table.rivers.last().expect("Tiles not found on river").discarded_by();
         let mut claims = Claims::new(claimee);
 
         for claimer in claimee.others() {

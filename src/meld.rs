@@ -25,9 +25,8 @@ impl Meld {
     pub fn raw(self) -> usize {
         self.0 as usize
     }
-    pub fn from_rep_meldtype_robbed_added(wind: Wind, rep: Figure, meld_type: MeldType, robbed_from: usize, added_from: usize, ids: &[usize]) -> Self {
+    pub fn from_rep_meldtype_robbed_added(rep: Figure, meld_type: MeldType, robbed_from: usize, added_from: usize) -> Self {
         let mut raw = 0;
-        raw |= wind.id() << 22;
         raw |= rep.suit().id() << 20;
         raw |= rep.rank().id() << 16;
         raw |= meld_type.id() << 14;
@@ -39,8 +38,8 @@ impl Meld {
     pub fn suitranks(self) -> SuitRanks {
         SuitRanks::from_suitranks(self.suit(), self.ranks())
     }
-    pub fn wind(self) -> Wind {
-        Wind::from_id((self.raw() >> 22) & 0x3)
+    pub fn wind(self, river: &Rivers) -> Option<Wind> {
+        river.get(self.robbed_from())?.robbed_by()
     }
     pub fn suit(self) -> Suit {
         Suit::from_id((self.raw() >> 20) & 0x3)

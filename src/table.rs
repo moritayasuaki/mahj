@@ -77,6 +77,12 @@ impl Rivers {
             index: 0
         }
     }
+    pub fn slice_mut(&mut self) -> &mut [DiscardedTile] {
+        &mut self.tiles[0..self.index]
+    }
+    pub fn slice(&self) -> &[DiscardedTile] {
+        &self.tiles[0..self.index]
+    }
     pub fn iter(&self) -> impl Iterator<Item = &DiscardedTile> {
         self.tiles.iter().take(self.index)
     }
@@ -91,13 +97,14 @@ impl Rivers {
     pub fn clear(&mut self) {
         self.index = 0
     }
-    pub fn top(&mut self) -> Option<&mut DiscardedTile> {
-        let i = self.index;
-        if i != 0 {
-            Some(&mut self.tiles[i-1])
-        } else {
-            None
-        }
+    pub fn last(&self) -> Option<&DiscardedTile> {
+        self.slice().last()
+    }
+    pub fn last_mut(&mut self) -> Option<&mut DiscardedTile> {
+        self.slice_mut().last_mut()
+    }
+    pub fn get(&self, index: usize) -> Option<&DiscardedTile> {
+        self.slice().get(index)
     }
 }
 
@@ -115,6 +122,12 @@ impl Melds {
             tiles: Tiles::new()
         }
     }
+    pub fn slice(&self) -> &[Meld] {
+        &self.meld[0..self.index]
+    }
+    pub fn slice_mut(&mut self) -> &mut [Meld] {
+        &mut self.meld[0..self.index]
+    }
     pub fn clear(&mut self) {
         self.index = 0;
         self.tiles.clear();
@@ -127,8 +140,11 @@ impl Melds {
         self.index += 1;
         self.meld[i] = meld;
     }
-    pub fn top(&mut self) -> &mut Meld {
-        &mut self.meld[self.index - 1]
+    pub fn last_mut(&mut self) -> Option<&mut Meld> {
+        self.slice_mut().last_mut()
+    }
+    pub fn last(&self) -> Option<&Meld> {
+        self.slice().last()
     }
 }
 
