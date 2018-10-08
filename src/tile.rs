@@ -178,8 +178,8 @@ impl Tiles {
         let id = t.id();
         ((self.0)[id / 64] & (1 << (id % 64))) != 0
     }
-    pub fn extract(&mut self, f: Figure) -> Option<Tile> {
-        let id = f.id() * 4;
+    pub fn extract_figure(&mut self, figure: Figure) -> Option<Tile> {
+        let id = figure.id() * 4;
         let s = ((self.0)[id/64] >> (id % 64)) & 0xf;
         if s != 0 {
             let t = Tile::from_id(id + s.trailing_zeros() as usize);
@@ -188,6 +188,18 @@ impl Tiles {
         } else {
             None
         }
+    }
+    pub fn extract_suitranks(&mut self, suitranks: SuitRanks) -> Vec<Tile> {
+        let mut v = Vec::new();
+        let mut fs = suitranks.to_figures();
+        for f in fs {
+            if let Some(t) = self.extract_figure(f) {
+                v.push(t);
+            } else {
+                return Vec::new();
+            }
+        }
+        v
     }
     pub fn figures(&mut self) -> Figures {
         let mut figures = Figures::new();
@@ -426,5 +438,14 @@ impl SuitRanks {
 
     pub fn is_pair(&self) -> bool {
         self.tile_count() == 2 && !self.ranks().filter_pair().is_empty()
+    }
+
+    pub fn to_figures(&self) -> Vec<Figure> {
+        let mut v = Vec::new();
+        let mut ranks = self.ranks();
+        while Some(rank) = ranks.next() {
+            v.push(Figure::from_suitrank(self.suit(), rank))
+        }
+        v
     }
 }

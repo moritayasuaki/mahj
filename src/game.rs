@@ -271,7 +271,7 @@ impl<'a> Seat<'a> {
 
     }
     pub fn extract_tile_from_hand(&mut self, figure: Figure) -> Option<Tile> {
-        self.land.extract(figure)
+        self.land.extract_figure(figure)
     }
     pub fn throw_tile_into_river(&mut self, tile: Tile) {
         self.river.add(self.wind, tile)
@@ -307,10 +307,19 @@ impl<'a> Seat<'a> {
         Some((d.tile(), i))
     }
     pub fn meld_kong(&mut self) {
+
         let (tile, index) = self.rob_tile().expect("no tile");
-        let tile1 = self.land.extract(tile.figure()).expect("no tile");
-        let tile2 = self.land.extract(tile.figure()).expect("no tile");
-        let tile3 = self.land.extract(tile.figure()).expect("no tile");
+        let _ = self.land.extract_figure(tile.figure()).expect("no tile");
+        let _ = self.land.extract_figure(tile.figure()).expect("no tile");
+        let _ = self.land.extract_figure(tile.figure()).expect("no tile");
+        let meld = Meld::from_rep_meldtype_robbed_added(
+            tile.figure(), MeldType::KONG, index, 0);
+        self.melds.add(meld);
+    }
+    pub fn meld_pung(&mut self) {
+        let (tile, index) = self.rob_tile().expect("no tile");
+        let _ = self.land.extract_figure(tile.figure()).expect("no tile");
+        let _ = self.land.extract_figure(tile.figure()).expect("no tile");
         let meld = Meld::from_rep_meldtype_robbed_added(
             tile.figure(), MeldType::KONG, index, 0);
         self.melds.add(meld);
