@@ -443,7 +443,7 @@ impl SuitRanks {
     pub fn to_figures(&self) -> Vec<Figure> {
         let mut v = Vec::new();
         let mut ranks = self.ranks();
-        while Some(rank) = ranks.next() {
+        while let Some(rank) = ranks.next() {
             v.push(Figure::from_suitrank(self.suit(), rank))
         }
         v
