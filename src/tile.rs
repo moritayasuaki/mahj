@@ -129,11 +129,11 @@ impl Rank {
     }
 }
 
-#[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
+#[derive(Clone,Debug,PartialEq,Eq,PartialOrd)]
 pub struct Tiles([u64; (Tile::N - 1) / 64 + 1]);
-#[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
+#[derive(Clone,Debug,PartialEq,Eq,PartialOrd)]
 pub struct Figures([Ranks; 4]);
-#[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
+#[derive(Clone,Debug,PartialEq,Eq,PartialOrd)]
 pub struct Suits([u8; 4]);
 #[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
 pub struct Ranks(u32);
@@ -189,17 +189,18 @@ impl Tiles {
             None
         }
     }
-    pub fn extract_suitranks(&mut self, suitranks: SuitRanks) -> Vec<Tile> {
-        let mut v = Vec::new();
-        let mut fs = suitranks.to_figures();
-        for f in fs {
-            if let Some(t) = self.extract_figure(f) {
-                v.push(t);
+    pub fn extract_suitranks(&mut self, suitranks: SuitRanks) -> Option<Vec<Tile>> {
+        let mut tiles = self.clone();
+        let mut vec = Vec::new();
+        for figure in suitranks.to_figures() {
+            if let Some(tile) = tiles.extract_figure(figure) {
+                vec.push(tile);
             } else {
-                return Vec::new();
+                return None;
             }
         }
-        v
+        *self = tiles;
+        Some(vec)
     }
     pub fn figures(&mut self) -> Figures {
         let mut figures = Figures::new();
@@ -287,17 +288,32 @@ impl Ranks {
     pub fn has(&self, rank: Rank) -> bool {
         self.0 & (0o7 << (3 * rank.id())) != 0
     }
+    pub fn make_kong(rank: Rank) -> Self {
+        Ranks::from_raw(0o4 << (3 * rank.id()))
+    }
+    pub fn make_pung(rank: Rank) -> Self {
+        Ranks::from_raw(0o3 << (3 * rank.id()))
+    }
+    pub fn make_chow(rank: Rank) -> Self {
+        Ranks::from_raw(0o111 << (1 * rank.id()))
+    }
+    pub fn make_pair(rank: Rank) -> Self {
+        Ranks::from_raw(0o2 << (3 * rank.id()))
+    }
+    pub fn make_one(rank: Rank) -> Self {
+        Ranks::from_raw(0o1 << (3 * rank.id()))
+    }
     pub fn filter_pung(self) -> Self {
-        let r = self.0;
+        let r = self.raw();
         let r = (r + 0o111111111) >> 2;
         let r = r & 0o111111111;
-        Ranks(r)
+        Ranks::from_raw(r)
     }
     pub fn filter_kong(self) -> Self {
-        let r = self.0;
+        let r = self.raw();
         let r = r >> 2;
         let r = r & 0o111111111;
-        Ranks(r)
+        Ranks::from_raw(r)
     }
     pub fn filter_pair(self) -> Self {
         let r = self.0;
@@ -407,7 +423,9 @@ impl SuitRanks {
     pub fn tile_count(&self) -> usize {
         self.ranks().count()
     }
-
+    pub fn make_chow(figure: Figure) -> Self {
+        SuitRanks::from_suitranks(figure.suit(), Ranks::make_chow(figure.rank()))
+    }
     pub fn is_chow(&self) -> bool {
         self.suit().is_numeric() && self.ranks().count() == 3 && !self.ranks().filter_chow().is_empty()
     }

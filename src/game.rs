@@ -307,7 +307,6 @@ impl<'a> Seat<'a> {
         Some((d.tile(), i))
     }
     pub fn meld_kong(&mut self) {
-
         let (tile, index) = self.rob_tile().expect("no tile");
         let _ = self.land.extract_figure(tile.figure()).expect("no tile");
         let _ = self.land.extract_figure(tile.figure()).expect("no tile");
