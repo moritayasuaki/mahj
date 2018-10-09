@@ -93,6 +93,44 @@ fn parse_test() {
     assert_eq!(Figure::parse("🀞"), Some(Figure::from_suitrank(Suit::CIRCLE, Rank::from_id(5))));
 }
 
+#[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
+pub struct Shape(u8);
+
+impl Shape {
+    pub const CHOW: Self = Shape(0);
+    pub const PUNG: Self = Shape(1);
+    pub const KONG: Self = Shape(2);
+    pub const ADDED_KONG: Self = Shape(3);
+    pub fn id(self) -> usize {
+        self.0 as usize
+    }
+    pub fn from_id(id: usize) -> Self {
+        Shape((id & 0xff) as u8)
+    }
+}
+
+#[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
+pub struct Set(u8);
+
+impl Set {
+    pub fn raw(self) -> usize {
+        self.0 as usize
+    }
+    pub fn from_raw(raw: usize) -> Self {
+        Set((raw & 0xff) as u8)
+    }
+    pub fn from_shape_figure(shape: Shape, figure: Figure) -> Self {
+        let a = (shape.id() << 6) | figure.id();
+        Set::from_raw(a)
+    }
+    pub fn figure(&self) -> Figure {
+        Figure::from_id(self.raw() & 0x3f)
+    }
+    pub fn shape(&self) -> Shape {
+        Shape::from_id(self.raw() >> 6)
+    }
+}
+
 impl Suit {
     pub const N: usize = 4;
     pub const CHARA: Self = Suit(0);
@@ -251,7 +289,8 @@ impl Figures {
     pub fn has_one(&self, rep: Figure) -> bool {
         (self.0)[rep.suit().id()].filter_one().has(rep.rank())
     }
-}
+
+ }
 
 impl Ranks {
     pub fn new() -> Self {
@@ -423,9 +462,7 @@ impl SuitRanks {
     pub fn tile_count(&self) -> usize {
         self.ranks().count()
     }
-    pub fn make_chow(figure: Figure) -> Self {
-        SuitRanks::from_suitranks(figure.suit(), Ranks::make_chow(figure.rank()))
-    }
+
     pub fn is_chow(&self) -> bool {
         self.suit().is_numeric() && self.ranks().count() == 3 && !self.ranks().filter_chow().is_empty()
     }
@@ -467,3 +504,4 @@ impl SuitRanks {
         v
     }
 }
+

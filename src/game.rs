@@ -292,7 +292,7 @@ impl<'a> Seat<'a> {
     }
     pub fn has_pung_exposed(&self, figure: Figure) -> bool {
         self.melds.iter().find(|meld|
-            (meld.wind(self.river) == Some(self.wind)) && (meld.meldtype() == MeldType::PUNG) && (meld.rep() == figure)).is_some()
+            (meld.wind(self.river) == Some(self.wind)) && (meld.set().shape() == Shape::PUNG) && (meld.set().figure() == figure)).is_some()
     }
     pub fn has_figure_concealed(&self, figure: Figure) -> bool {
         self.land.clone().figures().has_one(figure)
@@ -311,16 +311,15 @@ impl<'a> Seat<'a> {
         let _ = self.land.extract_figure(tile.figure()).expect("no tile");
         let _ = self.land.extract_figure(tile.figure()).expect("no tile");
         let _ = self.land.extract_figure(tile.figure()).expect("no tile");
-        let meld = Meld::from_rep_meldtype_robbed_added(
-            tile.figure(), MeldType::KONG, index, 0);
+        let meld = Meld::from_set_robinfo(Set::from_shape_figure(Shape::KONG, tile.figure()), index, 0);
         self.melds.add(meld);
     }
     pub fn meld_pung(&mut self) {
         let (tile, index) = self.rob_tile().expect("no tile");
         let _ = self.land.extract_figure(tile.figure()).expect("no tile");
         let _ = self.land.extract_figure(tile.figure()).expect("no tile");
-        let meld = Meld::from_rep_meldtype_robbed_added(
-            tile.figure(), MeldType::KONG, index, 0);
+        let meld = Meld::from_set_robinfo(
+            Set::from_shape_figure(Shape::PUNG, tile.figure()), index, 0);
         self.melds.add(meld);
     }
     pub fn do_choice(&mut self, choice: Choice, tile: Tile) -> Result<Step, failure::Error> {
