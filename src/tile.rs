@@ -35,8 +35,11 @@ impl Tile {
     pub fn spec(&self) -> usize {
         (self.0 & 0x3) as usize
     }
-    pub fn rank_spec(&self) -> RankSpec {
-        RankSpec::from_rank_spec(self.rank(), self.spec())
+    pub fn rankspec(&self) -> RankSpec {
+        RankSpec::from_rankspec(self.rank(), self.spec())
+    }
+    pub fn from_suit_rankspec(suit: Suit, rankspec: RankSpec) -> Tile {
+        Tile::from_id(suit.id() * 36  + rankspec.id())
     }
 }
 
@@ -47,10 +50,9 @@ impl RankSpec {
     pub fn from_id(id: usize) -> Self {
         RankSpec(id as u8)
     }
-    pub fn from_rank_spec(rank: Rank, spec: usize) -> Self {
+    pub fn from_rankspec(rank: Rank, spec: usize) -> Self {
         RankSpec::from_id((rank.id() << 2) | spec)
     }
-
 }
 
 impl Figure {
@@ -177,6 +179,32 @@ pub struct Suits([u8; 4]);
 pub struct Ranks(u32);
 #[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
 pub struct SuitRanks(u32);
+#[derive(Copy,Clone,Debug,PartialEq,Eq)]
+pub struct RankSpecs(u64);
+
+impl RankSpecs {
+    pub fn new() -> Self {
+        RankSpecs(0)
+    }
+    pub fn is_empty(&self) -> bool {
+        self.0 == 0
+    }
+    pub fn count(&self) -> usize {
+        self.0.count_ones() as usize
+    }
+    pub fn clear(&mut self) {
+        self.0 = 0
+    }
+    pub fn next(&mut self) -> Option<RankSpec> {
+        if self.0 == 0 {
+            None
+        } else {
+            let t = self.0;
+            self.0 = t & (t-1);
+            Some(RankSpec::from_id(t.trailing_zeros() as usize))
+        }
+    }
+}
 
 impl Tiles {
     pub fn new() -> Self {
@@ -190,7 +218,7 @@ impl Tiles {
     }
     pub fn clear(&mut self) {
         for t in self.0.iter_mut() {
-            *t = 0;
+            *t = 0
         }
     }
     pub fn next(&mut self) -> Option<Tile> {
@@ -227,18 +255,8 @@ impl Tiles {
             None
         }
     }
-    pub fn extract_suitranks(&mut self, suitranks: SuitRanks) -> Option<Vec<Tile>> {
-        let mut tiles = self.clone();
-        let mut vec = Vec::new();
-        for figure in suitranks.to_figures() {
-            if let Some(tile) = tiles.extract_figure(figure) {
-                vec.push(tile);
-            } else {
-                return None;
-            }
-        }
-        *self = tiles;
-        Some(vec)
+    pub fn extract_set(&mut self, set: Set) -> Option<Vec<Tile>> {
+        unimplemented!()
     }
     pub fn figures(&mut self) -> Figures {
         let mut figures = Figures::new();

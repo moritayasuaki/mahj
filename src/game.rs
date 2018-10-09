@@ -327,8 +327,8 @@ impl<'a> Seat<'a> {
             Choice::Discard{figure, riichi} => {
                 let discard = self.extract_tile_from_hand(figure)
                     .ok_or(failure::err_msg(format!("Can not discard {}", figure.show())))?;
-                self.throw_tile_into_river(discard);
                 self.take_tile_into_hand(tile);
+                self.throw_tile_into_river(discard);
                 Phase::Ask{kong: false}.into()
             },
             Choice::DrawAndDiscard{riichi} => {
@@ -336,6 +336,7 @@ impl<'a> Seat<'a> {
                 Phase::Ask{kong: false}.into()
             },
             Choice::Kong(figure) => {
+                
                 self.take_tile_into_hand(tile);
                 if self.has_kong_concealed(figure) {
                     let tile = self.extract_tile_from_hand(figure).expect("must have figure");
