@@ -258,14 +258,26 @@ impl Tiles {
         let (rs, s) = (t.rankspec(), t.suit());
         (self.0)[s.id()].has(rs)
     }
-    pub fn extract_figure(&mut self, figure: Figure) -> Option<Tile> {
+    pub fn extract(&mut self, figure: Figure) -> Option<Tile> {
         let (r, s) = (figure.rank(), figure.suit());
         (self.0)[s.id()].extract(r).map(|rs|
             Tile::from_suit_rankspec(s, rs)
         )
     }
     pub fn extract_set(&mut self, set: Set) -> Option<Vec<Tile>> {
-        unimplemented!()
+        let figure = set.figure();
+        let (r, s) = (figure.rank(), figure.suit());
+        let mut rs = (self.0)[s.id()];
+        let ov: Option<Vec<Tile>> = match set.shape() {
+            Shape::ADDED_KONG | Shape::KONG => (0..4).map(|_| rs.extract(r).map(|r| Tile::from_suit_rankspec(s, r))).collect(),
+            Shape::PUNG => (0..3).map(|_| rs.extract(r).map(|r| Tile::from_suit_rankspec(s,r))).collect(),
+            Shape::CHOW => (0..3).map(|i| rs.extract(Rank::from_id(r.id()+i)).map(|r| Tile::from_suit_rankspec(s, r))).collect(),
+            _ => unreachable!()
+        };
+        if ov.is_some() {
+            (self.0)[s.id()] = rs;
+        }
+        ov
     }
     pub fn figures(&mut self) -> Figures {
         let mut figures = Figures::new();
