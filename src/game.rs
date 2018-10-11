@@ -336,7 +336,6 @@ impl<'a> Seat<'a> {
                 Phase::Ask{kong: false}.into()
             },
             Choice::Kong(figure) => {
-                
                 self.take_tile_into_hand(tile);
                 if self.has_kong_concealed(figure) {
                     let tile = self.extract_tile_from_hand(figure).expect("must have figure");

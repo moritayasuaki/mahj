@@ -30,7 +30,7 @@ impl Tile {
         self.figure().rank()
     }
     pub fn figure(&self) -> Figure {
-        Figure((self.id() / 4) as u8)
+        Figure((self.id() >> 2) as u8)
     }
     pub fn spec(&self) -> usize {
         (self.0 & 0x3) as usize
@@ -122,8 +122,7 @@ impl Set {
         Set((raw & 0xff) as u8)
     }
     pub fn from_shape_figure(shape: Shape, figure: Figure) -> Self {
-        let a = (shape.id() << 6) | figure.id();
-        Set::from_raw(a)
+        Set::from_raw((shape.id() << 6) | figure.id())
     }
     pub fn figure(&self) -> Figure {
         Figure::from_id(self.raw() & 0x3f)
@@ -170,16 +169,16 @@ impl Rank {
 }
 
 #[derive(Clone,Debug,PartialEq,Eq,PartialOrd)]
-pub struct Tiles([u64; (Tile::N - 1) / 64 + 1]);
+pub struct Tiles([RankSpecs; Suit::N]);
 #[derive(Clone,Debug,PartialEq,Eq,PartialOrd)]
-pub struct Figures([Ranks; 4]);
+pub struct Figures([Ranks; Suit::N]);
 #[derive(Clone,Debug,PartialEq,Eq,PartialOrd)]
-pub struct Suits([u8; 4]);
+pub struct Suits([u8; Suit::N]);
 #[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
 pub struct Ranks(u32);
 #[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
 pub struct SuitRanks(u32);
-#[derive(Copy,Clone,Debug,PartialEq,Eq)]
+#[derive(Copy,Clone,Debug,PartialEq,Eq,PartialOrd)]
 pub struct RankSpecs(u64);
 
 impl RankSpecs {
@@ -204,56 +203,66 @@ impl RankSpecs {
             Some(RankSpec::from_id(t.trailing_zeros() as usize))
         }
     }
+    pub fn add(&mut self, rs: RankSpec) {
+        self.0 |= 1 << rs.id()
+    }
+    pub fn del(&mut self, rs: RankSpec) {
+        self.0 &= !(1 << rs.id())
+    }
+    pub fn has(&self, rs: RankSpec) -> bool {
+        (self.0 & (1 << rs.id())) != 0
+    }
+    pub fn extract(&mut self, r: Rank) -> Option<RankSpec> {
+        let p = self.0 & (0xf << (4 * r.id()));
+        if p != 0 {
+            let t = p.trailing_zeros();
+            self.0 = p & (p - 1);
+            Some(RankSpec::from_id(t as usize))
+        } else {
+            None
+        }
+    }
 }
 
 impl Tiles {
     pub fn new() -> Self {
-        Tiles([0; (Tile::N - 1) / 64 + 1])
+        Tiles([RankSpecs::new(); Suit::N])
     }
     pub fn is_empty(&self) -> bool {
         self.count() == 0
     }
     pub fn count(&self) -> usize {
-        self.0.iter().map(|&b| b.count_ones() as usize).sum()
+        self.0.iter().map(RankSpecs::count).sum()
     }
     pub fn clear(&mut self) {
         for t in self.0.iter_mut() {
-            *t = 0
+            *t = RankSpecs::new()
         }
     }
     pub fn next(&mut self) -> Option<Tile> {
         self.0.iter_mut()
             .enumerate()
-            .find_map(|(i, b)| if *b != 0 {
-                let t = *b;
-                *b &= t - 1;
-                Some(Tile::from_id(i * 64 + t.trailing_zeros() as usize))
-            } else {
-                None
-            })
+            .find_map(|(i, b)|
+                b.next().map(|b|
+                    Tile::from_suit_rankspec(Suit::from_id(i), b)))
     }
     pub fn add(&mut self, t: Tile) {
-        let id = t.id();
-        (self.0)[id / 64] |= 1 << (id % 64);
+        let (rs, s) = (t.rankspec(), t.suit());
+        (self.0)[s.id()].add(rs)
     }
     pub fn del(&mut self, t: Tile) {
-        let id = t.id();
-        (self.0)[id / 64] &= !(1 << (id % 64));
+        let (rs, s) = (t.rankspec(), t.suit());
+        (self.0)[s.id()].del(rs)
     }
     pub fn has(&self, t: Tile) -> bool {
-        let id = t.id();
-        ((self.0)[id / 64] & (1 << (id % 64))) != 0
+        let (rs, s) = (t.rankspec(), t.suit());
+        (self.0)[s.id()].has(rs)
     }
     pub fn extract_figure(&mut self, figure: Figure) -> Option<Tile> {
-        let id = figure.id() * 4;
-        let s = ((self.0)[id/64] >> (id % 64)) & 0xf;
-        if s != 0 {
-            let t = Tile::from_id(id + s.trailing_zeros() as usize);
-            self.del(t);
-            Some(t)
-        } else {
-            None
-        }
+        let (r, s) = (figure.rank(), figure.suit());
+        (self.0)[s.id()].extract(r).map(|rs|
+            Tile::from_suit_rankspec(s, rs)
+        )
     }
     pub fn extract_set(&mut self, set: Set) -> Option<Vec<Tile>> {
         unimplemented!()
