@@ -5,7 +5,7 @@ use tile::*;
 pub enum Choice {
     DrawAndDiscard{riichi: bool},
     Discard{figure:Figure, riichi: bool},
-    Kong(Figure),
+    Kong{figure:Figure},
     NineTerminals,
     Mahjong
 }
@@ -36,13 +36,13 @@ impl Choice {
             "Kong" => {
                 if let Some(expr) = tokens.next() {
                     Figure::parse(expr).ok_or(failure::err_msg("Parse error"))
-                        .map(|figure| Choice::Kong(figure))
+                        .map(|figure| Choice::Kong{figure})
                 } else {
                     Err(failure::err_msg("No arguments"))
                 }
             }
             command => Err(failure::err_msg(format!("No such command: {}", command)))
-            }
+        }
     }
 }
 

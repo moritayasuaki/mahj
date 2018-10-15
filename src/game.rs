@@ -306,22 +306,6 @@ impl<'a> Seat<'a> {
         d.add_robbed_mark(self.wind);
         Some((d.tile(), i))
     }
-    pub fn meld_kong(&mut self) {
-        let (tile, index) = self.rob_tile().expect("no tile");
-        let _ = self.land.extract(tile.figure()).expect("no tile");
-        let _ = self.land.extract(tile.figure()).expect("no tile");
-        let _ = self.land.extract(tile.figure()).expect("no tile");
-        let meld = Meld::from_set_robinfo(Set::from_shape_figure(Shape::KONG, tile.figure()), index, 0);
-        self.melds.add(meld);
-    }
-    pub fn meld_pung(&mut self) {
-        let (tile, index) = self.rob_tile().expect("no tile");
-        let _ = self.land.extract(tile.figure()).expect("no tile");
-        let _ = self.land.extract(tile.figure()).expect("no tile");
-        let meld = Meld::from_set_robinfo(
-            Set::from_shape_figure(Shape::PUNG, tile.figure()), index, 0);
-        self.melds.add(meld);
-    }
     pub fn do_choice(&mut self, choice: Choice, tile: Tile) -> Result<Step, failure::Error> {
         match choice {
             Choice::Discard{figure, riichi} => {
@@ -335,21 +319,25 @@ impl<'a> Seat<'a> {
                 self.throw_tile_into_river(tile);
                 Phase::Ask{kong: false}.into()
             },
-            Choice::Kong(figure) => {
-                self.take_tile_into_hand(tile);
-                if self.has_kong_concealed(figure) {
-                    let tile = self.extract_tile_from_hand(figure).expect("must have figure");
-                    self.throw_tile_into_river(tile);
-                    self.meld_kong();
-                    Phase::Replace{wind: self.wind, expose: false}.into()
-                } else if self.has_pung_exposed(figure) && self.has_figure_concealed(figure) {
-                    let tile = self.extract_tile_from_hand(figure).expect("must have figure");
-                    self.throw_tile_into_river(tile);
-                    Phase::Ask{kong: true}.into()
-                } else {
-                    self.remove_tile_from_hand(tile);
-                    Err(failure::err_msg("can not make kong"))
+            Choice::Kong{figure} => {
+                self.land.add(tile);
+                if let Some(ts) = self.land.extract_set(Set::from_shape_figure(Shape::KONG, figure)) {
+                    self.river.add(self.wind, ts[0]);
+                    let (t, i) = self.river.rob(self.wind).expect("hoge");
+                    let meld = Meld::from_set_robinfo(Set::from_shape_figure(Shape::KONG, t.figure()), i);
+                    self.melds.add(meld);
+                    return Phase::Replace{wind: self.wind, expose: false}.into();
                 }
+                if let Some(t) = self.land.extract(figure) {
+                    for m in self.melds.iter_mut() {
+                        if m.set() == Set::from_shape_figure(Shape::KONG, figure) && m.wind(self.river).unwrap() == self.wind {
+                            self.river.add(self.wind, t);
+                            return Phase::Ask{kong: false}.into()
+                        }
+                    }
+                }
+                self.land.del(tile);
+                return Err(failure::err_msg("can not make kong"))
             },
             Choice::Mahjong => {
                 unimplemented!()

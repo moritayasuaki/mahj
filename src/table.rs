@@ -106,6 +106,12 @@ impl Rivers {
     pub fn get(&self, index: usize) -> Option<&DiscardedTile> {
         self.slice().get(index)
     }
+    pub fn rob(&mut self, wind: Wind) -> Option<(Tile, usize)> {
+        let i = self.index-1;
+        let d = self.last_mut()?;
+        d.add_robbed_mark(wind);
+        Some((d.tile(), i))
+    }
 }
 
 pub struct Melds {
@@ -134,6 +140,9 @@ impl Melds {
     }
     pub fn iter(&self) -> impl Iterator<Item = &Meld> {
         self.meld.iter().take(self.index)
+    }
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Meld> {
+        self.meld.iter_mut().take(self.index)
     }
     pub fn add(&mut self, meld: Meld) {
         let i = self.index;
