@@ -19,8 +19,3 @@ fn main() -> Result<(), failure::Error> {
     println!("{:?}", score);
     Ok(())
 }
-
-#[test]
-fn test_main() -> Result<(), failure::Error> {
-    main()
-}
