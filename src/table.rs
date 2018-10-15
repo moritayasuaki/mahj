@@ -155,6 +155,10 @@ impl Melds {
     pub fn last(&self) -> Option<&Meld> {
         self.slice().last()
     }
+    pub fn iter_wind<'a> (&'a self, river: &'a Rivers, wind: Wind) -> impl Iterator<Item = (usize, &'a Meld)> {
+        self.iter().enumerate().filter(move |(_, m)|
+            m.wind(river) == Some(wind))
+    }
 }
 
 pub struct Lands {
